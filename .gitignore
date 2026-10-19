@@ -1,0 +1,30 @@
+# Chi commit nguon va file project. Bo qua ket qua bien dich Quartus.
+
+# Database va thu muc sinh ra khi compile
+db/
+incremental_db/
+output_files/
+greybox_tmp/
+simulation/
+
+# File nap chip va file bien dich
+*.sof
+*.pof
+*.jic
+*.jam
+*.jbc
+*.ekp
+*.rbf
+
+# Report, pin-out da fit, va file tam cua Quartus
+*.rpt
+*.summary
+*.pin
+*.done
+*.smsg
+*.jdi
+*.qmsg
+*.qws
+*.cdf
+*.bak
+*~

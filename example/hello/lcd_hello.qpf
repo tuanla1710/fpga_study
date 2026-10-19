@@ -1,0 +1,4 @@
+QUARTUS_VERSION = "11.0"
+DATE = "08:24:00  October 19, 2026"
+
+PROJECT_REVISION = "lcd_hello"

@@ -1,0 +1,44 @@
+set_global_assignment -name FAMILY Cyclone
+set_global_assignment -name DEVICE EP1C6Q240C8
+set_global_assignment -name TOP_LEVEL_ENTITY lcd_hello_ep1c6
+set_global_assignment -name ORIGINAL_QUARTUS_VERSION 11.0
+set_global_assignment -name PROJECT_CREATION_TIME_DATE "08:24:00  OCTOBER 19, 2026"
+set_global_assignment -name LAST_QUARTUS_VERSION 11.0
+set_global_assignment -name SDC_FILE lcd_hello.sdc
+set_global_assignment -name VERILOG_FILE lcd_hello.v
+set_global_assignment -name VERILOG_FILE lcd_hello_ep1c6.v
+set_global_assignment -name RESERVE_ALL_UNUSED_PINS "AS INPUT TRI-STATED"
+set_global_assignment -name RESERVE_ALL_UNUSED_PINS_NO_OUTPUT_GND "AS INPUT TRI-STATED"
+
+# Silkscreen on the board, Q240 package pin numbers.
+# OSC is the system clock, package pin 28 (dedicated CLK0).
+set_location_assignment PIN_28 -to clk
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to clk
+set_location_assignment PIN_223 -to lcd_data[0]
+set_location_assignment PIN_222 -to lcd_data[1]
+set_location_assignment PIN_221 -to lcd_data[2]
+set_location_assignment PIN_220 -to lcd_data[3]
+set_location_assignment PIN_219 -to lcd_data[4]
+set_location_assignment PIN_218 -to lcd_data[5]
+set_location_assignment PIN_217 -to lcd_data[6]
+set_location_assignment PIN_216 -to lcd_data[7]
+set_location_assignment PIN_215 -to lcd_rs
+set_location_assignment PIN_214 -to lcd_rw
+set_location_assignment PIN_213 -to lcd_en
+
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to lcd_data[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to lcd_data[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to lcd_data[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to lcd_data[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to lcd_data[4]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to lcd_data[5]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to lcd_data[6]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to lcd_data[7]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to lcd_rs
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to lcd_rw
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to lcd_en
+
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
+set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
