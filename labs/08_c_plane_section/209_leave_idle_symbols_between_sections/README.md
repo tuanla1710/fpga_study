@@ -2,53 +2,53 @@
 
 ## Description
 
-Bài này thuộc nhóm C-plane section. Lệnh section: nhận, kiểm tra, xếp hàng, áp vào đúng symbol.
+This lab is in the C-plane section group. Section commands: accept, check, queue, and apply on the right symbol.
 
-Việc cần làm: Leave idle symbols between sections. Thói quen mang sang FPGA O-RU đang chạy ở công ty: Gap.
+Task: Leave idle symbols between sections. Habit to carry to the running company O-RU: Gap.
 
-Board EP1C6 chỉ để luyện. Hiệu năng thấp là cố ý. Bài không thay solution O-RU của công ty.
+The EP1C6 board is only for practice. The low performance is intentional. This lab does not replace the company's O-RU solution.
 
 ## Prepare
 
-1. Bật nguồn board. Công tắc RUN/PROG để RUN. Cáp USB-Blaster cắm header JTAG, không cắm header AS.
-2. Mở Quartus II 11.0 Web Edition. Device EP1C6Q240C8. Clock hệ thống là PIN_28. File SDC có `create_clock -name clk -period 20.000 [get_ports clk]` khi oscillator là 50 MHz.
-3. Làm việc trong thư mục này để file .sof của bài không lẫn với bài khác.
-4. Chân LCD đã biết, chỉ gán khi bài dùng LCD: D0–D7 = 223–216, RS 215, RW 214, E 213. RW buộc 0. Không gán lcd_on và lcd_blon.
-5. Chưa dùng chân LED, 7 thanh, nút hoặc switch trong bài này thì chưa gán các chân đó.
+1. Power the board. Set the RUN/PROG switch to RUN. Plug the USB-Blaster into the JTAG header, not the AS header.
+2. Open Quartus II 11.0 Web Edition. Device EP1C6Q240C8. The system clock is PIN_28. The SDC file contains `create_clock -name clk -period 20.000 [get_ports clk]` when the oscillator is 50 MHz.
+3. Work in this directory so this lab's .sof does not mix with another lab.
+4. The LCD pins are known. Assign them only if this lab uses the LCD: D0–D7 = 223–216, RS 215, RW 214, E 213. Tie RW to 0. Do not assign lcd_on or lcd_blon.
+5. If this lab does not use the LED, 7-segment, button, or switch pins, do not assign them yet.
 
 ## Research
 
-1. Đọc tên bài và viết một câu: xong bài này thì trên board nhìn thấy gì.
-2. Thói quen cần mang sang O-RU của công ty: Gap. Viết nó nằm ở module nào trong RTL của bạn.
-3. Liệt kê field: section id, start symbol, số symbol, beam id, hướng, PRB, RE mask.
-4. Viết điều kiện từ chối. start + length không vượt quá symbol 13.
-5. Quyết định FIFO đầy thì bỏ lệnh mới hay lệnh cũ.
+1. Read the lab title and write one sentence: what you should see on the board when this lab is done.
+2. Habit to carry to the company O-RU: Gap. Write which module in your RTL owns it.
+3. List the fields: section id, start symbol, symbol count, beam id, direction, PRB, RE mask.
+4. Write the reject condition. start + length must not pass symbol 13.
+5. Decide whether a full FIFO drops the new command or the old one.
 
 ## Implement
 
-1. Hành vi cần có: Leave idle symbols between sections.
-2. Làm đúng một kiểm tra hoặc một opcode trong tên bài.
-3. Lệnh bị từ chối không được sửa section đang chạy.
-4. LCD hiện lý do từ chối hoặc độ sâu hàng đợi.
-5. Giữ unused pin ở dạng input tri-stated.
-6. Comment ngắn ngay chỗ sửa: vì sao sửa, giá trị reset là gì.
+1. Required behavior: Leave idle symbols between sections.
+2. Implement exactly the one check or opcode named in the lab title.
+3. A rejected command must not modify the section that is running.
+4. The LCD shows the reject reason or the queue depth.
+5. Leave unused pins as input tri-stated.
+6. Add a short comment at the edit: why it changed, and what the reset value is.
 
 ## Test
 
-1. Biên dịch bằng Quartus 11: `C:\altera\11.0\quartus\bin\quartus_sh.exe --flow compile` trong thư mục project của bài.
-2. Đọc số error trước, rồi mới đọc setup slack. Slack âm do chu kỳ 1 ns là thiếu SDC.
-3. Gửi một lệnh đúng. Section active đổi đúng field.
-4. Gửi một lệnh sai theo tên bài. Bộ đếm reject tăng, lịch symbol cũ giữ nguyên.
-5. Nạp .sof bằng JTAG: `quartus_pgm.exe -c "USB-Blaster [USB-0]" -m JTAG -o "p;<đường dẫn file .sof>"`. Mode JTAG, không nạp .pof trong bài này.
-6. Tắt nguồn rồi bật lại. Image .sof mất. Đó là kết quả đúng của cấu hình SRAM.
+1. Compile with Quartus 11: `C:\altera\11.0\quartus\bin\quartus_sh.exe --flow compile` in this lab's project directory.
+2. Read the error count first, then read setup slack. Negative slack from a 1 ns period means the SDC is missing.
+3. Send one legal command. The active section changes the right field.
+4. Send one illegal command, as the lab title describes. The reject counter increments, and the old symbol schedule stays put.
+5. Program the .sof over JTAG: `quartus_pgm.exe -c "USB-Blaster [USB-0]" -m JTAG -o "p;<path to the .sof file>"`. Use JTAG mode. Do not program a .pof in this lab.
+6. Power the board off, then on. The .sof image is gone. That is the correct result for an SRAM configuration.
 
 ## Expected results
 
-- Biên dịch xong với 0 error.
-- Lệnh hợp lệ được nhận. Lệnh sai bị đếm và không làm lệch symbol đang chạy.
-- Nhìn trên board hoặc trong log và chỉ được đúng việc này: Leave idle symbols between sections.
-- Tắt nguồn làm mất image .sof. Nếu bài chưa nạp .pof thì đó không phải lỗi.
+- Compilation finishes with 0 errors.
+- A legal command is accepted. An illegal command is counted and does not shift the symbol that is already running.
+- On the board or in the log, confirm only this: Leave idle symbols between sections.
+- Removing power clears the .sof image. If this lab has not programmed a .pof, that is the expected result.
 
 ## What you learned
 
-Sửa parser lệnh O-RU mà đường đang phát không bị vỡ lịch. Riêng bài 209, thói quen đó là: Gap.
+Change the O-RU command parser without breaking the schedule of the path that is already transmitting. On lab 209, that habit is: Gap.

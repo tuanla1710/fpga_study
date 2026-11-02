@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>O-RU 4T4R 24 dBm — bản bố trí 3D</title>
+<title>O-RU 4T4R 24 dBm — 3D placement</title>
 <style>
   html, body { margin: 0; height: 100%; background: #121418; color: #e8eaed; font-family: "Segoe UI", sans-serif; }
   #wrap { display: grid; grid-template-columns: 280px 1fr; height: 100%; }
@@ -22,11 +22,11 @@
 <div id="wrap">
   <aside>
     <h1>O-RU indoor 4T4R</h1>
-    <p>Mạch 120 × 80 mm. RJ45 MGMT kiêm PoE ở mép trái, cạnh cụm debug. Anten ở mép phải. Kéo chuột để xoay, lăn để phóng.</p>
-    <div id="tip">Đưa chuột lên linh kiện để xem tên.</div>
-    <button id="iso" type="button">Góc nhìn tổng</button>
-    <button id="top" type="button">Nhìn từ trên</button>
-    <p>Agilex 5 và AFE7950 nằm sát nhau để lane JESD 8,11 Gb/s ngắn. SI5518 nằm giữa hai chip đó. Quad 25 GbE ở phía SFP, không chung refclk với JESD.</p>
+    <p>Board 120 × 80 mm. The RJ45 MGMT port, which also carries PoE, is on the left edge next to the debug cluster. Antennas are on the right edge. Drag to rotate, scroll to zoom.</p>
+    <div id="tip">Hover a part to see its name.</div>
+    <button id="iso" type="button">Overview</button>
+    <button id="top" type="button">Top view</button>
+    <p>The Agilex 5 and the AFE7950 sit close together so the 8.11 Gb/s JESD lanes stay short. The SI5518 sits between those two chips. The 25 GbE quad is on the SFP side and does not share a refclk with JESD.</p>
     <ul id="legend"></ul>
   </aside>
   <canvas id="c"></canvas>
@@ -34,7 +34,7 @@
 <script>
 const parts = [
   ["PCB",        0,  0,    0, 120, 1.6, 80, "#1d6b45"],
-  ["Lọc EMI 12V", 2, 1.6,  2,  16, 8,   12, "#4a4034"],
+  ["12V EMI filter", 2, 1.6,  2,  16, 8,   12, "#4a4034"],
   ["POL FPGA",   20, 1.6,  2,  14, 4,   10, "#3d3428"],
   ["POL AFE",    36, 1.6,  2,  12, 3.5, 10, "#3d3428"],
   ["RJ45 MGMT PoE", 2, 1.6, 44, 16, 13, 14, "#1a4a7a"],
@@ -48,15 +48,15 @@ const parts = [
   ["AFE7950",    64, 1.6, 24, 17, 1.5, 17, "#4d5560"],
 ];
 
-const bands = ["Anten 1", "Anten 2", "Anten 3", "Anten 4"];
+const bands = ["Antenna 1", "Antenna 2", "Antenna 3", "Antenna 4"];
 bands.forEach((label, i) => {
   const z = 4 + i * 16.5;
   parts.push(
     ["PA " + label + " n77", 82, 1.6, z,     5, 1.2, 6, "#5c3b16"],
     ["PA " + label + " n79", 82, 1.6, z + 7, 5, 1.2, 6, "#5c3b16"],
-    ["Lọc " + label,         88, 1.6, z + 1, 6, 1.6, 12, "#6a6258"],
+    ["Filter " + label,      88, 1.6, z + 1, 6, 1.6, 12, "#6a6258"],
     ["TDD/LNA " + label,     94, 1.6, z + 3, 4, 1.1, 8, "#243044"],
-    ["Cổng " + label,        98, 1.6, z + 4, 3.2, 8, 6, "#c6a15a"]
+    ["Port " + label,        98, 1.6, z + 4, 3.2, 8, 6, "#c6a15a"]
   );
 });
 
@@ -205,7 +205,7 @@ canvas.addEventListener("pointermove", e => {
     const name = hit((e.clientX - r.left) * devicePixelRatio, (e.clientY - r.top) * devicePixelRatio);
     if (name !== hover) {
       hover = name;
-      tip.textContent = name || "Đưa chuột lên linh kiện để xem tên.";
+      tip.textContent = name || "Hover a part to see its name.";
     }
   }
 });

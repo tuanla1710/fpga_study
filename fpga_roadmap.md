@@ -1,170 +1,170 @@
-# Lộ trình học FPGA
+# FPGA learning path
 
-Mục tiêu là đọc, sửa và bảo trì FPGA O-RU đang chạy ở công ty. Board đang có là Cyclone EP1C6Q240C8. Chip này nhỏ, không có nhân cứng và không có transceiver, nên chỉ dùng để luyện. Cùng các khối LUT, flip-flop, clock, bộ nhớ và chân I/O vẫn là các khối sẽ gặp lại trong FPGA O-RU lớn.
+The goal is to read, change, and maintain the O-RU FPGA that is already running at the company. The board on hand is a Cyclone EP1C6Q240C8. This chip is small. It has no hard processor and no transceiver, so it is only for practice. The same LUT, flip-flop, clock, memory, and I/O blocks are the blocks you will meet again in a large O-RU FPGA.
 
-Bài tập nằm trong `docs/ru_board_projects.md` và thư mục `labs/`. Ví dụ đã chạy trên LCD là `example/hello/`: hiện `O-RAN Team`.
+The exercises are in `docs/ru_board_projects.md` and the `labs/` directory. The example that already runs on the LCD is `example/hello/`: it displays `O-RAN Team`.
 
-## FPGA khác phần mềm ở đâu
+## Where an FPGA differs from software
 
-CPU lấy một dòng lệnh, làm xong, rồi lấy dòng tiếp theo. FPGA không chạy theo kiểu đó. File Verilog mô tả các mạch tồn tại cùng một lúc. Sau khi biên dịch, cấu hình được nạp vào SRAM của chip. Mỗi LUT, mỗi flip-flop và mỗi dây nối nhận một cấu hình. Tắt nguồn là SRAM mất cấu hình, nên file `.sof` nạp bằng JTAG sẽ mất khi rút điện.
+A CPU fetches one instruction, finishes it, then fetches the next. An FPGA does not run that way. A Verilog file describes circuits that exist at the same time. After compilation, the configuration is loaded into the chip's SRAM. Each LUT, each flip-flop, and each route receives a configuration. Removing power clears that SRAM, so a `.sof` programmed over JTAG is lost when power is removed.
 
-Vòng làm việc lúc sửa O-RU cũng là vòng này: sửa mô tả mạch, biên dịch, nạp image, kiểm tra hành vi cũ còn đúng.
+The loop used when changing an O-RU is the same loop: edit the circuit description, compile, program the image, and check that the old behavior is still correct.
 
-## Các khối trong FPGA
+## Blocks inside an FPGA
 
-Một FPGA là một lưới. Khối logic nằm thành hàng và cột. Dây nối programmable routing đi giữa chúng. Mạng clock đi riêng để đồng hồ tới nhiều flip-flop cùng một lúc. Chân I/O nằm quanh viền. Bộ nhớ khối và PLL nằm ở những cột riêng.
+An FPGA is a grid. Logic blocks sit in rows and columns. Programmable routing runs between them. The clock network is separate, so one clock reaches many flip-flops at the same time. I/O pins sit around the edge. Block memory and PLLs sit in their own columns.
 
-Trên EP1C6Q240C8, các con số cần nhớ:
+On the EP1C6Q240C8, the numbers to remember are:
 
-| Khối | Có trên EP1C6 | Việc của khối |
+| Block | On the EP1C6 | What the block does |
 | --- | --- | --- |
-| Logic element (LE) | Khoảng 5980 | Một LUT 4 ngõ vào cộng một flip-flop |
-| Logic array block (LAB) | 10 LE trong một LAB | Nhóm LE dùng chung dây cục bộ và đường carry |
-| Routing | Hàng và cột | Nối LE, RAM và chân theo kết quả fitter |
-| Clock | Chân chuyên dụng, mạng clock toàn chip | Đưa một clock tới nhiều flip-flop |
-| PLL | 2 | Nhân, chia, dịch pha clock |
-| M4K | 20 khối, khoảng 92 Kbit | RAM, ROM, FIFO |
-| I/O element | Gói Q240, khoảng 185 chân user | Vào, ra, hoặc hi-Z |
-| Cấu hình | SRAM trong chip | Giữ thiết kế sau khi nạp JTAG |
+| Logic element (LE) | About 5980 | One 4-input LUT plus one flip-flop |
+| Logic array block (LAB) | 10 LEs in one LAB | A group of LEs that share local wires and a carry chain |
+| Routing | Rows and columns | Connects LEs, RAM, and pins according to the fitter |
+| Clock | Dedicated pins, chip-wide clock network | Brings one clock to many flip-flops |
+| PLL | 2 | Multiplies, divides, and phase-shifts a clock |
+| M4K | 20 blocks, about 92 Kbit | RAM, ROM, FIFO |
+| I/O element | Q240 package, about 185 user pins | Input, output, or hi-Z |
+| Configuration | SRAM inside the chip | Holds the design after a JTAG program |
 
-EP1C6 không có khối nhân cứng, không có transceiver, không có CPU cứng. Phép nhân do LE ghép lại. Đường 10 GbE hoặc 25 GbE của O-RU không nằm trên chip này.
+The EP1C6 has no hard multiplier, no transceiver, and no hard CPU. Multiplication is built from LEs. A 10 GbE or 25 GbE O-RU path does not fit on this chip.
 
 ### Logic element
 
-LUT 4 ngõ vào làm một hàm logic bất kỳ của bốn tín hiệu: AND, OR, XOR, bộ chọn, hoặc một phần của bộ giải mã. Flip-flop đứng sau LUT để giữ kết quả theo cạnh clock. Đường carry nối các LE để cộng và so sánh nhanh hơn là xếp nhiều LUT rời.
+A 4-input LUT implements any logic function of four signals: AND, OR, XOR, a mux, or part of a decoder. The flip-flop after the LUT holds the result on a clock edge. The carry chain connects LEs so addition and comparison are faster than a pile of separate LUTs.
 
-Ứng dụng: bộ đếm frame, máy trạng thái, thanh ghi gain, bộ so sánh ngưỡng alarm. Trên O-RU, phần điều khiển và phần gộp bit cũng nằm trong LUT và flip-flop, dù LUT của chip mới thường có sáu ngõ vào.
+Uses: a frame counter, a state machine, a gain register, an alarm-threshold comparator. On an O-RU, the control logic and the bit packing also live in LUTs and flip-flops, even though a newer chip's LUT usually has six inputs.
 
-### LAB và routing
+### LAB and routing
 
-LAB gom mười LE để các tín hiệu gần nhau không phải chạy ra dây dài. Fitter của Quartus chọn LE nào và dây nào. Người viết RTL không đặt từng LUT, nhưng vẫn phải biết một `always` theo clock sẽ thành flip-flop, và một `assign` tổ hợp sẽ thành LUT.
+A LAB groups ten LEs so nearby signals do not have to travel on long wires. Quartus's fitter chooses which LE and which wire. The person writing RTL does not place each LUT, but still has to know that a clocked `always` becomes a flip-flop and a combinational `assign` becomes a LUT.
 
-Routing quá dài làm đường tới chậm. Đó là lý do một thiết kế đúng chức năng vẫn có thể fail timing.
+A route that is too long makes a path late. That is why a design that is functionally correct can still fail timing.
 
 ### Clock
 
-Các flip-flop trong một module phải dùng chung một clock. Trên board này, clock hệ thống là OSC chân 28, coi là 50 MHz khi file SDC ghi chu kỳ 20 ns. ADC CLK là xung FPGA phát ra cho ADC, không phải clock của chip.
+The flip-flops in one module must share one clock. On this board the system clock is OSC pin 28, treated as 50 MHz when the SDC file states a 20 ns period. ADC CLK is a pulse the FPGA sends to the ADC. It is not the chip clock.
 
-Mạng clock toàn chip có độ lệch thấp giữa các flip-flop. Không nên lấy một tín hiệu logic thường làm clock. Muốn nhịp 1 ms hoặc 10 ms thì tạo một xung enable rộng một chu kỳ, rồi các thanh ghi vẫn clock bằng 50 MHz.
+The chip-wide clock network has low skew between flip-flops. Do not use an ordinary logic signal as a clock. For a 1 ms or 10 ms beat, make a one-cycle enable pulse. The registers still clock at 50 MHz.
 
-PLL lấy clock vào và tạo clock nhanh hơn, chậm hơn, hoặc lệch pha. EP1C6 có hai PLL. Bài đầu chưa cần PLL. Trên O-RU, PLL và khối clock sạch hơn dùng để tạo clock mẫu, clock bus, và clock giao tiếp.
+A PLL takes a clock in and makes a faster clock, a slower clock, or a phase-shifted clock. The EP1C6 has two PLLs. The early labs do not need a PLL. On an O-RU, PLLs and cleaner clock blocks make the sample clock, the bus clock, and the interface clock.
 
-### Bộ nhớ M4K
+### M4K memory
 
-Mỗi khối M4K là RAM đồng bộ khoảng 4 Kbit dữ liệu, kèm bit parity. Hai mươi khối là trần bộ nhớ của chip này. ROM chuỗi LCD, hàng đợi lệnh, và buffer vài mẫu IQ phải nằm trong số đó hoặc trong LE nếu bảng quá nhỏ.
+Each M4K block is about 4 Kbit of synchronous RAM, plus parity bits. Twenty blocks are this chip's memory ceiling. The LCD string ROM, a command queue, and a buffer of a few IQ samples must live in those blocks, or in LEs if the table is very small.
 
-Ứng dụng trên O-RU cùng nguyên tắc, chỉ sâu hơn: buffer symbol, FIFO giữa hai miền clock, hệ số lọc, bảng gain. Việc cần luyện là cờ full, cờ empty, và thời điểm được đổi buffer.
+The O-RU use is the same idea, only deeper: a symbol buffer, a FIFO between two clock domains, filter coefficients, a gain table. The habits to practice are the full flag, the empty flag, and the moment a buffer may be swapped.
 
-### Chân I/O
+### I/O pins
 
-Mỗi chân user có chiều vào, ra, hoặc ngõ ra tắt (tri-state), có thể có flip-flop riêng. Chuẩn đang dùng cho LCD là 3.3 V LVTTL. Chân chưa dùng để ở input tri-stated, không kéo xuống đất hàng loạt.
+Each user pin has an input direction, an output direction, or a disabled output (tri-state), and it can have its own flip-flop. The standard in use for the LCD is 3.3 V LVTTL. Leave unused pins as input tri-stated. Do not tie them to ground in a row.
 
-Chân đã đọc từ silk của board này:
+Pins already read from this board's silkscreen:
 
-| Tín hiệu | Chân |
+| Signal | Pin |
 | --- | --- |
 | Clock | 28 |
 | LCD D0–D7 | 223–216 |
 | LCD RS, RW, E | 215, 214, 213 |
 
-LED, LED 7 thanh, nút, switch, ADC và RS-232 vẫn phải chép từ silk trước khi gán. Không lấy số chân của board khác.
+LEDs, the 7-segment display, buttons, switches, the ADC, and RS-232 still have to be copied from the silkscreen before they are assigned. Do not take pin numbers from another board.
 
-### Cấu hình
+### Configuration
 
-Thiết kế nằm trong SRAM. JTAG nạp file `.sof` và mất khi tắt nguồn. Header AS dùng file `.pof` nếu muốn giữ sau khi mất điện. Hai header 10 chân trên board không thay thế cho nhau. Cáp USB-Blaster phải ở header JTAG, công tắc RUN/PROG ở RUN.
+The design lives in SRAM. JTAG loads a `.sof`, and that image is lost when power is removed. The AS header uses a `.pof` when the design must survive power loss. The two 10-pin headers do not stand in for each other. For JTAG, the USB-Blaster cable must be on the JTAG header and the RUN/PROG switch must be on RUN.
 
-### Những khối chỉ có trên FPGA O-RU lớn
+### Blocks that exist only on a large O-RU FPGA
 
-Khi mở code công ty, các tên sau là phần EP1C6 không làm được, nhưng cách đọc RTL vẫn giống:
+When you open the company code, the names below are parts the EP1C6 cannot implement. The way you read the RTL is still the same:
 
-| Khối | Chức năng | Ứng dụng trên RU |
+| Block | Function | Use on the RU |
 | --- | --- | --- |
-| DSP / MAC | Nhân rồi cộng trong một khối cứng | Gain, lọc, FFT, DPD |
-| Transceiver | SerDes nhiều Gb/s | eCPRI, CPRI, JESD204 |
-| RAM lớn | Hàng megabit | Buffer symbol, hệ số |
-| Nhiều miền clock | Clock data, clock bus, clock CPU | Đường mẫu và đường điều khiển |
-| Khối cấu hình và debug | JTAG, Signal Tap, thanh ghi | Nạp image và đọc trạng thái |
+| DSP / MAC | Multiply, then add, in one hard block | Gain, filtering, FFT, DPD |
+| Transceiver | Multi-gigabit SerDes | eCPRI, CPRI, JESD204 |
+| Large RAM | Megabits | Symbol buffer, coefficients |
+| Several clock domains | Data clock, bus clock, CPU clock | Sample path and control path |
+| Configuration and debug blocks | JTAG, Signal Tap, registers | Program an image and read status |
 
-LUT, flip-flop, FSM, thanh ghi, FIFO và ràng buộc clock vẫn ở dưới các khối đó. Luyện trên EP1C6 là luyện lớp này.
+LUTs, flip-flops, FSMs, registers, FIFOs, and clock constraints still sit underneath those blocks. Practice on the EP1C6 is practice at that layer.
 
-## Ngôn ngữ
+## Languages
 
-FPGA không lập trình bằng một ngôn ngữ chạy từng dòng. Ngôn ngữ mô tả mạch, công cụ tổng hợp thành LUT và flip-flop.
+An FPGA is not programmed in a language that runs line by line. The language describes a circuit, and the tool synthesizes it into LUTs and flip-flops.
 
-| Ngôn ngữ | Dùng để | Ghi chú cho lộ trình này |
+| Language | Used for | Note for this path |
 | --- | --- | --- |
-| Verilog | Mô tả mạch và testbench | Ngôn ngữ của `example/hello` và của các bài trong `labs/` |
-| VHDL | Cùng việc với Verilog, cú pháp khác | Code O-RU của công ty có thể là VHDL. Cách đọc khối thì giống nhau |
-| SystemVerilog | Interface, `logic`, assert trong testbench | Quartus 11 hỗ trợ hẹp. Chưa dùng làm ngôn ngữ chính trên board này |
-| SDC | Ràng buộc clock và đường trễ | Không mô tả chức năng. Thiếu SDC thì TimeQuest giả định chu kỳ 1 ns và báo slack âm giả |
-| Tcl | Điều khiển Quartus bằng lệnh | `quartus_sh --flow compile`, gán project, chạy script |
-| C / Python | CPU, script, test bên ngoài | Không trở thành LUT. Phần mềm O-RU điều khiển thanh ghi, còn FPGA là mạch |
+| Verilog | Circuit description and testbenches | The language of `example/hello` and of the labs in `labs/` |
+| VHDL | The same job as Verilog, with different syntax | The company's O-RU code may be VHDL. The way you read a block is the same |
+| SystemVerilog | Interfaces, `logic`, assertions in a testbench | Quartus 11 support is narrow. Do not use it as the main language on this board yet |
+| SDC | Clock and path-delay constraints | It does not describe function. Without an SDC, TimeQuest assumes a 1 ns period and reports a false negative slack |
+| Tcl | Drive Quartus from the command line | `quartus_sh --flow compile`, project assignments, scripts |
+| C / Python | CPU, scripts, tests outside the chip | They do not become LUTs. O-RU software drives registers. The FPGA is the circuit |
 
-Một `if` trong khối `always` theo clock là một multiplexer đứng trước một flip-flop, không phải một nhánh chương trình chỉ chạy khi tới dòng đó. Hai `always` cùng clock chạy song song.
+An `if` inside a clocked `always` block is a multiplexer in front of a flip-flop. It is not a program branch that runs only when execution reaches that line. Two `always` blocks on the same clock run in parallel.
 
-## Cấu trúc một thiết kế
+## Structure of one design
 
-Ví dụ đang chạy tách làm hai tầng. `lcd_hello_ep1c6` là vỏ gắn chân board. `lcd_hello` là mạch LCD, có tham số `CLK_HZ`.
+The example that is running is split into two layers. `lcd_hello_ep1c6` is the shell that attaches board pins. `lcd_hello` is the LCD circuit, with a `CLK_HZ` parameter.
 
 ```text
-lcd_hello_ep1c6          top, chỉ có chân thật của board
-  lcd_hello              FSM khởi tạo HD44780 và ROM ký tự
-    clk                  một clock
+lcd_hello_ep1c6          top, only real board pins
+  lcd_hello              HD44780 init FSM and character ROM
+    clk                  one clock
     lcd_rs, lcd_en, lcd_data
-    lcd_rw               buộc 0
+    lcd_rw               tied to 0
 ```
 
-Các mảnh trong một file Verilog:
+The pieces inside a Verilog file:
 
-| Mảnh | Vai trò |
+| Piece | Role |
 | --- | --- |
-| `module` / `endmodule` | Một khối có tên, giống một linh kiện |
-| Port `input` / `output` | Chân của khối. `wire` nối thẳng, `reg` được gán trong `always` |
-| `parameter` | Hằng số đổi được từ module cha, ví dụ `CLK_HZ` |
-| `localparam` | Hằng số nội bộ, ví dụ mã trạng thái `S_BOOT` |
-| `assign` | Mạch tổ hợp, không có bộ nhớ |
-| `always @(posedge clk)` | Flip-flop. Gán bằng `<=` |
-| `case` có nhánh default | Máy trạng thái. Thiếu nhánh dễ thành latch |
-| ROM hoặc mảng | Bảng lệnh LCD, sau này là bảng gain hoặc hàng đợi |
-| Module cha gọi module con | Phân chỗ sở hữu: ai giữ timing, ai giữ LCD, ai giữ thanh ghi |
+| `module` / `endmodule` | One named block, like one component |
+| `input` / `output` ports | Pins of the block. A `wire` connects through. A `reg` is assigned inside `always` |
+| `parameter` | A constant the parent module can override, for example `CLK_HZ` |
+| `localparam` | An internal constant, for example the state code `S_BOOT` |
+| `assign` | Combinational logic, with no memory |
+| `always @(posedge clk)` | A flip-flop. Assign with `<=` |
+| `case` with a default branch | A state machine. A missing branch easily becomes a latch |
+| ROM or an array | The LCD command table. Later, a gain table or a queue |
+| A parent module calls a child module | Split ownership: who holds timing, who holds the LCD, who holds the registers |
 
-Thứ tự dòng trong `always` không phải thứ tự thời gian. Các flip-flop lấy giá trị mới ở cùng một cạnh clock.
+The order of lines inside `always` is not the order of time. The flip-flops take their new values on the same clock edge.
 
-Tệp quanh RTL:
+Files around the RTL:
 
-| Tệp | Việc |
+| File | Job |
 | --- | --- |
-| `.v` | Mô tả mạch |
-| `_tb.v` | Testbench, phát clock giả và kiểm tra |
-| `.qpf` | Project Quartus. Phải mở file này thì mới biên dịch được |
-| `.qsf` | Chip, top-level, file nguồn, số chân |
-| `.sdc` | Ràng buộc clock |
-| `.sof` | Image nạp JTAG, do Quartus 11 ghi ở thư mục project |
+| `.v` | Circuit description |
+| `_tb.v` | Testbench. It generates a fake clock and checks results |
+| `.qpf` | Quartus project. Compilation works only after this file is opened |
+| `.qsf` | Chip, top level, source files, pin numbers |
+| `.sdc` | Clock constraints |
+| `.sof` | JTAG image. Quartus 11 writes it in the project directory |
 
-Công cụ là Quartus II 11.0 Web Edition, device `EP1C6Q240C8`. Quartus 24.1 trên máy này chỉ để nạp, không tổng hợp được Cyclone đời đầu.
+The tool is Quartus II 11.0 Web Edition, device `EP1C6Q240C8`. Quartus 24.1 on this machine is only for programming. It cannot synthesize the original Cyclone family.
 
-## Lộ trình
+## Path
 
-Đi theo thứ tự. Mỗi bài trong `labs/` có `README.md`: chuẩn bị, nghiên cứu, thực hiện, kiểm tra, kết quả, và bài học. Không cần làm hết 540 bài trước khi mở code công ty.
+Follow the order. Each lab in `labs/` has a `README.md`: prepare, research, implement, test, expected results, and what you learned. You do not need to finish all 540 labs before opening the company code.
 
-| Giai đoạn | Việc | Bài |
+| Stage | Work | Labs |
 | --- | --- | --- |
-| 0. Board sống | Nạp lại ví dụ LCD, thấy `O-RAN Team`, biết image mất khi tắt nguồn | `example/hello` |
-| 1. Khối và công cụ | Chỉ ra LE, clock, I/O, SRAM cấu hình trên chính bài vừa nạp. Tập mở `.qpf`, đọc report, tìm `.sof` | 1–20 |
-| 2. Cấu trúc Verilog | Tách module, đặt tên hằng, tránh latch, một clock một reset | 21–45 |
-| 3. Clock, reset, đồng bộ, FSM | Enable 1 ms và 10 ms. Nút đi qua hai flip-flop. Trạng thái IDLE, CONFIG, RUN, FAULT | 46–105 |
-| 4. Thời gian và thanh ghi | Frame, subframe, symbol 0–13. Bản thanh ghi đang sửa và bản đang chạy | 106–185 |
-| 5. Lệnh và mẫu | Section, header IQ, gain bằng dịch bit, bão hòa, NCO bằng bộ cộng pha | 186–335 |
-| 6. Nhìn trạng thái | RAM, FIFO, LCD, rồi LED, 7 thanh, nút và switch sau khi đã chép silk | 336–540 |
-| 7. Code công ty | Tìm trong RTL O-RU đúng các khối đã luyện: clock, FSM, map thanh ghi, FIFO, pipeline | Solution đang chạy |
+| 0. Board is alive | Program the LCD example again, see `O-RAN Team`, and know the image is lost when power is removed | `example/hello` |
+| 1. Blocks and tools | Point out the LE, clock, I/O, and configuration SRAM on the design you just programmed. Practice opening the `.qpf`, reading the report, and finding the `.sof` | 1–20 |
+| 2. Verilog structure | Split modules, name constants, avoid latches, one clock and one reset | 21–45 |
+| 3. Clock, reset, synchronization, FSM | 1 ms and 10 ms enables. A button passes through two flip-flops. States IDLE, CONFIG, RUN, FAULT | 46–105 |
+| 4. Time and registers | Frame, subframe, symbols 0–13. A register copy being edited and a copy that is running | 106–185 |
+| 5. Commands and samples | Sections, IQ header, gain by bit shift, saturation, an NCO built from a phase accumulator | 186–335 |
+| 6. Watch the state | RAM, FIFO, LCD, then LEDs, the 7-segment display, buttons, and switches after the silkscreen has been copied | 336–540 |
+| 7. Company code | Find, in the O-RU RTL, the same blocks you practiced: clock, FSM, register map, FIFO, pipeline | The solution that is running |
 
-Khi sang giai đoạn 7, đọc một module theo cùng một danh sách:
+When you reach stage 7, read one module against the same list:
 
-1. Port nào là clock, port nào là reset, reset xóa những thanh ghi nào.
-2. Trạng thái nào tồn tại, cạnh nào được phép.
-3. Thanh ghi nào là cấu hình, bit nào là reserved.
-4. Mẫu và `valid` trễ bao nhiêu chu kỳ.
-5. FIFO nào nối hai miền clock.
-6. File SDC khóa clock nào.
+1. Which port is the clock, which port is the reset, and which registers the reset clears.
+2. Which states exist, and which edges are allowed.
+3. Which registers are configuration, and which bits are reserved.
+4. How many cycles the samples and `valid` are delayed.
+5. Which FIFO joins two clock domains.
+6. Which clocks the SDC file constrains.
 
-Sửa một chỗ, biên dịch lại, nạp lại, rồi kiểm tra cả hành vi mới và một hành vi cũ. Đó là việc các bài 476–500 và 540 luyện trên panel của board này.
+Change one place, compile again, program again, then check both the new behavior and one old behavior. That is what labs 476–500 and 540 practice on this board's panel.

@@ -2,53 +2,53 @@
 
 ## Description
 
-Bài này thuộc nhóm Testbench. Kiểm tra bằng testbench trước khi nạp board.
+This lab is in the testbench group. Check with a testbench before programming the board.
 
-Việc cần làm: Check that an illegal section is rejected. Thói quen mang sang FPGA O-RU đang chạy ở công ty: Reject check.
+Task: Check that an illegal section is rejected. Habit to carry to the running company O-RU: Reject check.
 
-Board EP1C6 chỉ để luyện. Hiệu năng thấp là cố ý. Bài không thay solution O-RU của công ty.
+The EP1C6 board is only for practice. The low performance is intentional. This lab does not replace the company's O-RU solution.
 
 ## Prepare
 
-1. Bật nguồn board. Công tắc RUN/PROG để RUN. Cáp USB-Blaster cắm header JTAG, không cắm header AS.
-2. Mở Quartus II 11.0 Web Edition. Device EP1C6Q240C8. Clock hệ thống là PIN_28. File SDC có `create_clock -name clk -period 20.000 [get_ports clk]` khi oscillator là 50 MHz.
-3. Làm việc trong thư mục này để file .sof của bài không lẫn với bài khác.
-4. Chân LCD đã biết, chỉ gán khi bài dùng LCD: D0–D7 = 223–216, RS 215, RW 214, E 213. RW buộc 0. Không gán lcd_on và lcd_blon.
-5. Chưa dùng chân LED, 7 thanh, nút hoặc switch trong bài này thì chưa gán các chân đó.
+1. Power the board. Set the RUN/PROG switch to RUN. Plug the USB-Blaster into the JTAG header, not the AS header.
+2. Open Quartus II 11.0 Web Edition. Device EP1C6Q240C8. The system clock is PIN_28. The SDC file contains `create_clock -name clk -period 20.000 [get_ports clk]` when the oscillator is 50 MHz.
+3. Work in this directory so this lab's .sof does not mix with another lab.
+4. The LCD pins are known. Assign them only if this lab uses the LCD: D0–D7 = 223–216, RS 215, RW 214, E 213. Tie RW to 0. Do not assign lcd_on or lcd_blon.
+5. If this lab does not use the LED, 7-segment, button, or switch pins, do not assign them yet.
 
 ## Research
 
-1. Đọc tên bài và viết một câu: xong bài này thì trên board nhìn thấy gì.
-2. Thói quen cần mang sang O-RU của công ty: Reject check. Viết nó nằm ở module nào trong RTL của bạn.
-3. Viết danh sách assert: điều kiện đúng và điều kiện phải fail.
-4. Chọn clock testbench nhanh hơn clock board nếu chỉ để đếm sự kiện, và ghi rõ hệ số.
-5. Chỉ ra một sửa đổi vô tình mà testbench này phải bắt được.
+1. Read the lab title and write one sentence: what you should see on the board when this lab is done.
+2. Habit to carry to the company O-RU: Reject check. Write which module in your RTL owns it.
+3. Write the assert list: the condition that must pass and the condition that must fail.
+4. Choose a testbench clock faster than the board clock if you only need to count events, and write down the ratio.
+5. Name one accidental edit that this testbench must catch.
 
 ## Implement
 
-1. Hành vi cần có: Check that an illegal section is rejected.
-2. Viết testbench tự in PASS chỉ khi mọi check đúng.
-3. Thêm đúng check trong tên bài.
-4. Không chờ LCD thật trong testbench. Kiểm tra byte hoặc thanh ghi.
-5. Giữ unused pin ở dạng input tri-stated.
-6. Comment ngắn ngay chỗ sửa: vì sao sửa, giá trị reset là gì.
+1. Required behavior: Check that an illegal section is rejected.
+2. Write a testbench that prints PASS only when every check passes.
+3. Add exactly the check named in the lab title.
+4. Do not wait for a real LCD in the testbench. Check the bytes or the registers.
+5. Leave unused pins as input tri-stated.
+6. Add a short comment at the edit: why it changed, and what the reset value is.
 
 ## Test
 
-1. Biên dịch bằng Quartus 11: `C:\altera\11.0\quartus\bin\quartus_sh.exe --flow compile` trong thư mục project của bài.
-2. Đọc số error trước, rồi mới đọc setup slack. Slack âm do chu kỳ 1 ns là thiếu SDC.
-3. Chạy testbench bằng trình mô phỏng đang có. Nếu máy chưa có iverilog, duyệt từng check trên giấy rồi mới nạp board.
-4. Đổi cố ý một hằng số. Testbench phải hết PASS.
-5. Nạp .sof bằng JTAG: `quartus_pgm.exe -c "USB-Blaster [USB-0]" -m JTAG -o "p;<đường dẫn file .sof>"`. Mode JTAG, không nạp .pof trong bài này.
-6. Tắt nguồn rồi bật lại. Image .sof mất. Đó là kết quả đúng của cấu hình SRAM.
+1. Compile with Quartus 11: `C:\altera\11.0\quartus\bin\quartus_sh.exe --flow compile` in this lab's project directory.
+2. Read the error count first, then read setup slack. Negative slack from a 1 ns period means the SDC is missing.
+3. Run the testbench with the simulator you have. If iverilog is not installed, walk each check on paper before programming the board.
+4. Change one constant on purpose. The testbench must stop printing PASS.
+5. Program the .sof over JTAG: `quartus_pgm.exe -c "USB-Blaster [USB-0]" -m JTAG -o "p;<path to the .sof file>"`. Use JTAG mode. Do not program a .pof in this lab.
+6. Power the board off, then on. The .sof image is gone. That is the correct result for an SRAM configuration.
 
 ## Expected results
 
-- Biên dịch xong với 0 error.
-- Lần chạy đúng in PASS. Lần phá cố ý không in PASS.
-- Nhìn trên board hoặc trong log và chỉ được đúng việc này: Check that an illegal section is rejected.
-- Tắt nguồn làm mất image .sof. Nếu bài chưa nạp .pof thì đó không phải lỗi.
+- Compilation finishes with 0 errors.
+- A correct run prints PASS. A run you break on purpose does not print PASS.
+- On the board or in the log, confirm only this: Check that an illegal section is rejected.
+- Removing power clears the .sof image. If this lab has not programmed a .pof, that is the expected result.
 
 ## What you learned
 
-Trước khi nạp image O-RU, một kiểm tra tự động phải còn đúng. Riêng bài 470, thói quen đó là: Reject check.
+Before you program an O-RU image, an automatic check must still pass. On lab 470, that habit is: Reject check.

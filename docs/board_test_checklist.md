@@ -1,138 +1,138 @@
-# Checklist test trên board đang có
+# Test checklist for the board on hand
 
-Board: Cyclone **EP1C6Q240C8N** (vỏ PQFP 240 chân, speed grade C8, không chì).  
+Board: Cyclone **EP1C6Q240C8N** (240-pin PQFP, speed grade C8, lead-free).  
 JTAG IDCODE: `020820DD`.  
-Cáp: Altera USB-Blaster `USB\VID_09FB&PID_6001`, serial `8A0K7PIR`, cổng `USB-Blaster [USB-0]`.
+Cable: Altera USB-Blaster `USB\VID_09FB&PID_6001`, serial `8A0K7PIR`, port `USB-Blaster [USB-0]`.
 
-Chip này có khoảng 5 980 logic element, 20 khối RAM M4K (92 160 bit), 2 PLL, khoảng 185 chân I/O. Không có bộ nhân cứng, không có transceiver. Dùng để học mạch số và thói quen nạp FPGA. Không chạy được O-RAN RU thật (eCPRI, JESD204, low-PHY).
+This chip has about 5,980 logic elements, 20 M4K RAM blocks (92,160 bits), 2 PLLs, and about 185 I/O pins. It has no hard multiplier and no transceiver. Use it to learn digital circuits and the habit of programming an FPGA. It cannot run a real O-RAN RU (eCPRI, JESD204, low-PHY).
 
-Đánh dấu `[x]` khi làm xong một mục.
+Mark `[x]` when an item is done.
 
-## Đã kiểm tra
+## Already checked
 
-- [x] Windows thấy USB-Blaster, driver `usbblstr.inf` đã gắn, trạng thái OK
-- [x] Không có cổng COM. Board này nói chuyện bằng JTAG, không phải UART ảo
-- [x] Nguồn board sáng, công tắc RUN/PROG để RUN
-- [x] Đầu cáp 10 chân có nẫy, chỉ cắm được một chiều
-- [x] Cắm đúng hàng JTAG thì `jtagconfig` đọc được `020820DD EP1C6`
-- [x] Mã in trên chip là `EP1C6Q240C8N`. Trong Quartus chọn `EP1C6Q240C8`
-- [x] Có mã nguồn LCD: `lcd_hello.v`, testbench `tb_lcd_hello.v`
-- [ ] Chưa cài Quartus II Web Edition 11.0 SP1, nên chưa biên dịch ra `.sof`
-- [ ] Chưa có sơ đồ chân LCD, chưa gán chân, chưa nạp
+- [x] Windows sees the USB-Blaster, the `usbblstr.inf` driver is bound, and the status is OK
+- [x] There is no COM port. This board talks over JTAG, not a virtual UART
+- [x] Board power is on, and the RUN/PROG switch is set to RUN
+- [x] The 10-pin plug is keyed and fits in only one direction
+- [x] On the correct JTAG row, `jtagconfig` reads `020820DD EP1C6`
+- [x] The marking on the chip is `EP1C6Q240C8N`. In Quartus, select `EP1C6Q240C8`
+- [x] LCD source exists: `lcd_hello.v`, testbench `tb_lcd_hello.v`
+- [ ] Quartus II Web Edition 11.0 SP1 is not installed yet, so a `.sof` has not been compiled
+- [ ] There is no LCD pin diagram yet, pins are not assigned, and nothing has been programmed
 
-Lệnh kiểm tra lại cáp:
+Command to check the cable again:
 
 ```text
 C:\altera\24.1std\qprogrammer\bin64\jtagconfig.exe
 ```
 
-Kết quả đúng:
+Expected result:
 
 ```text
 1) USB-Blaster [USB-0]
   020820DD   EP1C6
 ```
 
-## Phải có trước khi test trên board
+## Required before a test on the board
 
-- [ ] Tải và cài [Quartus II Web Edition 11.0 SP1](https://www.altera.com/downloads/fpga-development-tools/quartus-ii-web-edition-design-software-version-11-0-b123-windows), file `11.0sp1_quartus_free_windows.exe`, vào `C:\altera\11.0sp1`
-- [ ] Mở Quartus 11.0, tạo project, device = `EP1C6Q240C8`
-- [ ] Xác định chân clock trên board (thường là dao động 50 MHz) và ghi số chân vào project
-- [ ] Chụp hoặc chép sơ đồ chân các khối nhìn thấy trên board: LCD, LED, nút, switch
+- [ ] Download and install [Quartus II Web Edition 11.0 SP1](https://www.altera.com/downloads/fpga-development-tools/quartus-ii-web-edition-design-software-version-11-0-b123-windows), file `11.0sp1_quartus_free_windows.exe`, into `C:\altera\11.0sp1`
+- [ ] Open Quartus 11.0, create a project, device = `EP1C6Q240C8`
+- [ ] Identify the clock pin on the board (usually a 50 MHz oscillator) and write the pin number into the project
+- [ ] Photograph or copy the pin diagrams of the blocks you can see on the board: LCD, LEDs, buttons, switches
 
-Quartus 24.1 ở `C:\altera\24.1std\qprogrammer` chỉ dùng để nạp và chạy `jtagconfig`. Bản đó không biên dịch cho EP1C6.
+Quartus 24.1 at `C:\altera\24.1std\qprogrammer` is only for programming and for `jtagconfig`. That edition does not compile for the EP1C6.
 
-## Nhìn board và đánh dấu những gì thực sự có
+## Look at the board and mark what is really there
 
-Chỉ tick khi mắt thấy linh kiện hoặc chữ in trên board. Chưa thấy thì để trống, không đoán chân.
+Tick an item only when you can see the part or the printing on the board. If you have not seen it, leave it blank. Do not guess pins.
 
-- [ ] LCD ký tự (1602 hoặc tương đương HD44780)
-- [ ] LED đơn
-- [ ] Công tắc gạt (switch)
-- [ ] Nút nhấn
-- [ ] LED 7 đoạn
-- [ ] Còi
-- [ ] Chân UART (TX/RX)
+- [ ] Character LCD (1602 or an HD44780 equivalent)
+- [ ] Single LEDs
+- [ ] Slide switches
+- [ ] Push buttons
+- [ ] 7-segment LEDs
+- [ ] Buzzer
+- [ ] UART pins (TX/RX)
 - [ ] VGA
-- [ ] RAM rời (SRAM/SDRAM)
-- [ ] Header mở rộng
+- [ ] External RAM (SRAM/SDRAM)
+- [ ] Expansion header
 
-## Làm được trên board này
+## What this board can do
 
-Thứ tự từ dễ đến khó. Mỗi bài xong khi nạp `.sof`, tắt nguồn, bật lại, và hành vi đúng như mô tả.
+Easiest first. A lab is done when the `.sof` is programmed, power is cycled, and the behavior matches the description.
 
-### 1. Nạp được một thiết kế
+### 1. Program one design
 
-- [ ] Compile trong Quartus 11.0 ra `output_files\*.sof`
-- [ ] Nạp bằng Programmer, hardware = `USB-Blaster [USB-0]`, mode = JTAG
-- [ ] Tắt nguồn rồi bật lại: thiết kế mất. `.sof` chỉ nằm trong FPGA khi còn điện
-- [ ] Ghi lại: file `.sof` dùng để test, file `.pof` mới là nạp vào bộ nhớ cấu hình để giữ sau khi mất điện
+- [ ] Compile in Quartus 11.0 and produce `output_files\*.sof`
+- [ ] Program with the Programmer, hardware = `USB-Blaster [USB-0]`, mode = JTAG
+- [ ] Power off, then on: the design is gone. A `.sof` stays in the FPGA only while power is present
+- [ ] Write this down: the `.sof` is the file used for the test, and a `.pof` is what gets programmed into configuration memory so the design survives power loss
 
-### 2. Clock và chân ra
+### 2. Clock and an output pin
 
-- [ ] Led nhấp nháy khoảng 1 Hz từ clock board. Chứng minh clock và một chân ra đúng
-- [ ] Đổi tần số nháy bằng cách đổi bộ đếm, nạp lại, thấy LED đổi tốc độ
+- [ ] An LED blinks at about 1 Hz from the board clock. That proves the clock and one output pin
+- [ ] Change the blink rate by changing the counter, program again, and see the LED change speed
 
-### 3. Công tắc và nút
+### 3. Switches and buttons
 
-Chỉ làm nếu board có switch hoặc nút.
+Do this only if the board has switches or buttons.
 
-- [ ] Switch bật thì LED sáng, tắt thì LED tắt
-- [ ] Nút nhấn có chống dội. Một lần nhấn chỉ đếm một
+- [ ] The LED is on when the switch is on, and off when the switch is off
+- [ ] The push button is debounced. One press counts as one
 
-### 4. LCD hiện `hello`
+### 4. LCD shows `hello`
 
-Mã đã có trong `lcd_hello.v`. Chưa chạy được cho đến khi có số chân.
+The code is already in `lcd_hello.v`. It cannot run until the pin numbers exist.
 
-- [ ] Gán `clk`, `lcd_rs`, `lcd_rw`, `lcd_en`, `lcd_data[7:0]`, và nếu board có thì `lcd_on`, `lcd_blon`
-- [ ] Compile và nạp
-- [ ] Dòng 1 của LCD hiện `hello`
-- [ ] Tắt/bật nguồn, nạp lại, chữ vẫn hiện
+- [ ] Assign `clk`, `lcd_rs`, `lcd_rw`, `lcd_en`, `lcd_data[7:0]`, and `lcd_on` and `lcd_blon` if the board has them
+- [ ] Compile and program
+- [ ] Line 1 of the LCD shows `hello`
+- [ ] Power cycle, program again, and the text is still there
 
-### 5. Máy trạng thái
+### 5. State machine
 
-- [ ] Vài nút hoặc switch đổi trạng thái: tắt, sáng, nháy
-- [ ] Trạng thái hiện trên LED hoặc LCD
+- [ ] A few buttons or switches change the state: off, on, blinking
+- [ ] The state appears on an LED or on the LCD
 
-Đây là kiểu điều khiển giống thanh ghi cấu hình sau này, chỉ là bản nhỏ.
+This is the same kind of control as a later configuration register, only smaller.
 
-### 6. Đếm và hiển thị số
+### 6. Count and display a number
 
-Chỉ làm nếu có LED 7 đoạn hoặc LCD.
+Do this only if there is a 7-segment LED or an LCD.
 
-- [ ] Đếm giây và hiện số
-- [ ] Nút reset đưa bộ đếm về 0
+- [ ] Count seconds and display the number
+- [ ] A reset button returns the counter to 0
 
 ### 7. UART
 
-Chỉ làm nếu board có chân TX/RX và có USB-UART riêng. USB-Blaster hiện tại không tạo cổng COM.
+Do this only if the board has TX/RX pins and a separate USB-UART. The current USB-Blaster does not create a COM port.
 
-- [ ] FPGA gửi một dòng chữ ra TX
-- [ ] Máy tính nhận đúng bằng một cổng COM khác, không phải USB-Blaster
+- [ ] The FPGA sends one line of text out of TX
+- [ ] The computer receives it correctly on a different COM port, not the USB-Blaster
 
-### 8. Mô phỏng trước khi nạp
+### 8. Simulate before programming
 
-- [ ] Chạy `tb_lcd_hello.v` và thấy `PASS hello`
-- [ ] Mỗi bài mới có một testbench kiểm tra đúng/sai trước khi gắn chân
+- [ ] Run `tb_lcd_hello.v` and see `PASS hello`
+- [ ] Each new lab has a testbench that checks pass and fail before pins are attached
 
-## Khái niệm O-RAN RU học được từ các bài trên
+## O-RAN RU ideas these labs teach
 
-Làm trên EP1C6 để hiểu việc, không phải để phát sóng.
+Work on the EP1C6 to understand the job. It is not for transmitting.
 
-| Bài trên board | Việc tương ứng trong RU sau này |
+| Lab on the board | Matching job in a later RU |
 | --- | --- |
-| Clock, bộ đếm 1 Hz | Tick khung, symbol, slot |
-| Switch / nút vào thanh ghi | M-plane ghi gain, tần số, bật tắt carrier |
-| Máy trạng thái | Trình tự khởi tạo JESD, fronthaul, low-PHY |
-| LCD / LED hiện trạng thái | Quan sát trạng thái khi bring-up |
-| UART chữ | Log debug trước khi có eCPRI |
-| Testbench | Vector IQ và kiểm tra datapath |
+| Clock, 1 Hz counter | Frame, symbol, and slot ticks |
+| Switch / button written into a register | M-plane writes gain, frequency, and carrier on or off |
+| State machine | JESD, fronthaul, and low-PHY bring-up sequence |
+| LCD / LED showing status | Watch status during bring-up |
+| Text over UART | Debug log before eCPRI exists |
+| Testbench | IQ vectors and datapath checks |
 
-## Không làm trên EP1C6
+## Not done on the EP1C6
 
-- [x] Đã loại trừ: eCPRI 10/25 GbE, split 7.2x U-plane/C-plane trên dây
-- [x] Đã loại trừ: JESD204B/C tới transceiver RF
-- [x] Đã loại trừ: FFT/IFFT low-PHY, DUC/DDC, CFR, DPD băng rộng
-- [x] Đã loại trừ: PTP/SyncE
+- [x] Excluded: eCPRI 10/25 GbE, and a 7.2x U-plane/C-plane split on the wire
+- [x] Excluded: JESD204B/C to an RF transceiver
+- [x] Excluded: low-PHY FFT/IFFT, DUC/DDC, CFR, wideband DPD
+- [x] Excluded: PTP/SyncE
 
-Những mục đó cần FPGA có transceiver và DSP. Giữ chúng ngoài checklist của board này.
+Those items need an FPGA with transceivers and DSP. Keep them off this board's checklist.

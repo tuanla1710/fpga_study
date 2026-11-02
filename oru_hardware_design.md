@@ -1,305 +1,305 @@
-# Thiết kế O-RU 4T4R, 24 dBm
+# O-RU design, 4T4R, 24 dBm
 
-Máy indoor, split 7.2 Category A. Mỗi cổng anten 24 dBm trung bình. Băng n77, n78, n48 trên nhánh 3,3–4,2 GHz. Băng n79 trên nhánh 4,4–5,0 GHz. Một sóng mang hoặc hai sóng mang, băng thông chọn 10, 20, 40, 50, 60, 80 hoặc 100 MHz, SCS 30 kHz. Phần số dùng gói Sail River trên Agilex 5 SoC. Agilex 7 cùng gói nhưng tốn nguồn hơn, không hợp vỏ 24 dBm.
+An indoor unit, split 7.2 Category A. Each antenna port is 24 dBm average. Bands n77, n78, and n48 are on the 3.3–4.2 GHz branch. Band n79 is on the 4.4–5.0 GHz branch. One carrier or two carriers, with a selectable bandwidth of 10, 20, 40, 50, 60, 80, or 100 MHz, and SCS of 30 kHz. The digital section uses the Sail River package on an Agilex 5 SoC. Agilex 7 uses the same package but draws more power, so it does not fit a 24 dBm enclosure.
 
-Giá dưới đây là giá tham chiếu công khai hoặc mức ước lượng cho một bản mẫu, không phải báo giá mua hàng. License Sail River, Quartus và FPGA không có giá niêm yết.
+The prices below are public reference prices or an estimate for one prototype. They are not a purchase quote. Sail River, Quartus, and the FPGA have no list price.
 
-## 1. Kiến trúc
+## 1. Architecture
 
 ```text
 O-DU
   |  SFP28 25 GbE, SyncE + PTP
   v
 Agilex 5 SoC
-  F-Tile quad A: 25 GbE, refclk 156,25 MHz
-  F-Tile quad B: JESD204C, refclk 122,88 MHz
-  Fabric: lọc gói, eCPRI, O-RAN, FFT/iFFT, CP, PRACH, DUC/DDC
-  HPS: Linux, ptp4l, API M-plane, SPI/I2C
-  |  RJ45 MGMT: 1000BASE-T vào HPS, PoE Class 8 vào TPS2373-4
+  F-Tile quad A: 25 GbE, refclk 156.25 MHz
+  F-Tile quad B: JESD204C, refclk 122.88 MHz
+  Fabric: packet filter, eCPRI, O-RAN, FFT/iFFT, CP, PRACH, DUC/DDC
+  HPS: Linux, ptp4l, M-plane API, SPI/I2C
+  |  RJ45 MGMT: 1000BASE-T into the HPS, PoE Class 8 into the TPS2373-4
   |
   +-- DDR
   +-- SI5518
   +-- AFE7950  (4 TX, 4 RX, 2 FB)
          |
-         +-- 4 lần khối anten
-               chọn băng
-               nhánh 3,5 GHz hoặc nhánh 4,7 GHz
-               PA khoảng 28 dBm -> lọc -> chuyển TDD -> cổng 24 dBm
-               coupler -> gom feedback
+         +-- 4 copies of the antenna block
+               band select
+               3.5 GHz branch or 4.7 GHz branch
+               PA about 28 dBm -> filter -> TDD switch -> 24 dBm port
+               coupler -> combined feedback
 ```
 
-C-plane và U-plane ở fabric. M-plane và S-plane sang HPS. GPIO TDD xuất từ fabric, không từ HPS.
+The C-plane and U-plane stay in the fabric. The M-plane and S-plane go to the HPS. The TDD GPIO comes out of the fabric, not out of the HPS.
 
-Sail River đã kiểm 20, 60 và 100 MHz, tối đa 2 sóng mang, băng chiếm 200 MHz, băng tức thời 280 MHz, một cổng 25 GbE, nén 9 bit. Các băng thông 10, 40, 50 và 80 MHz thêm trong DSP Builder. JESD giữ nguyên 8110,08 Mb/s.
+Sail River has been checked at 20, 60, and 100 MHz, up to 2 carriers, 200 MHz occupied bandwidth, 280 MHz instantaneous bandwidth, one 25 GbE port, and 9-bit compression. The 10, 40, 50, and 80 MHz bandwidths are added in DSP Builder. JESD stays at 8110.08 Mb/s.
 
 ## 2. Clock
 
-Gốc thời gian radio là 122,88 MHz. Lane JESD 8110,08 Mb/s = 122,88 MHz × 66. Khung 10 ms = 1 228 800 chu kỳ. Symbol hữu ích SCS 30 kHz = 4096 mẫu.
+The radio time base is 122.88 MHz. A JESD lane at 8110.08 Mb/s is 122.88 MHz × 66. A 10 ms frame is 1,228,800 cycles. A useful SCS 30 kHz symbol is 4096 samples.
 
-| Clock | Tần số | Từ | Đến |
+| Clock | Frequency | From | To |
 | --- | --- | --- | --- |
-| OCXO | 10 MHz | Dao giữ tần | SI5518 |
-| SyncE | clock hồi | F-Tile quad A | SI5518 DSPLL A |
-| Ethernet | 156,25 MHz | SI5518 | F-Tile quad A |
-| JESD FPGA | 122,88 MHz | SI5518 | F-Tile quad B |
-| Radio | 122,88 MHz | SI5518 | Fabric |
-| AFE REFCLK | 491,52 MHz | SI5518 | AFE7950 REFCLK+/- |
-| SYSREF | theo log GUI AFE | SI5518 | AFE7950 và F-Tile, rồi tắt sau khi link lên |
-| 1 PPS | 1 Hz | Để trống | Chỉ lắp khi có GNSS |
+| OCXO | 10 MHz | Frequency reference | SI5518 |
+| SyncE | recovered clock | F-Tile quad A | SI5518 DSPLL A |
+| Ethernet | 156.25 MHz | SI5518 | F-Tile quad A |
+| JESD FPGA | 122.88 MHz | SI5518 | F-Tile quad B |
+| Radio | 122.88 MHz | SI5518 | Fabric |
+| AFE REFCLK | 491.52 MHz | SI5518 | AFE7950 REFCLK+/- |
+| SYSREF | from the AFE GUI log | SI5518 | AFE7950 and F-Tile, then turned off after the link is up |
+| 1 PPS | 1 Hz | Left unconnected | Fit only when GNSS is present |
 
-Hai refclk 156,25 MHz và 122,88 MHz không được vào cùng một quad transceiver. SYSREF chỉ bật lúc bring-up. Hai đường SYSREF cùng dài. HPS chỉnh DCO của SI5518 theo `ptp4l`. Mất quang thì holdover trên OCXO.
+The 156.25 MHz and 122.88 MHz refclks must not enter the same transceiver quad. SYSREF is on only during bring-up. The two SYSREF routes are the same length. The HPS trims the SI5518 DCO from `ptp4l`. If the optical link is lost, holdover stays on the OCXO.
 
-Đổi băng thông không đổi clock. Đổi n77 sang n79 chỉ đổi NCO của AFE.
+Changing bandwidth does not change the clock. Changing n77 to n79 only changes the AFE NCO.
 
-## 3. Nguồn, dư 10% so với công suất max
+## 3. Power, with 10% margin over maximum power
 
-24 dBm là mức tại cổng anten. PA bù suy hao lọc và chuyển mạch, nên ngõ ra PA khoảng 28 dBm. Nguồn không tính theo 24 dBm. Nguồn tính theo lúc bốn PA phát cùng lúc, AFE và FPGA ở mode nặng nhất.
+24 dBm is the level at the antenna port. The PA makes up the filter and switch loss, so the PA output is about 28 dBm. The power budget is not calculated from 24 dBm. It is calculated for the moment when all four PAs transmit together and the AFE and FPGA are in their heaviest mode.
 
-Các số watt của FPGA là ngân sách thiết kế, chưa phải số đo. Sau khi có project Sail River phải chạy Power Analyzer rồi khóa lại. Số của AFE lấy từ các mode trong datasheet AFE7950, có mode gần 9 W.
+The FPGA watt numbers are a design budget, not a measurement. After the Sail River project exists, run the Power Analyzer and then lock the number. The AFE numbers come from the modes in the AFE7950 datasheet. One mode is near 9 W.
 
-| Tải | Max tại chân linh kiện | Cách tính |
+| Load | Max at the device pins | How it is calculated |
 | --- | --- | --- |
-| Agilex 5, HPS, 25 GbE, JESD | 35 W | FFT 4T4R chạy liên tục, RAM và DSP đầy, cộng transceiver. 18 W chỉ đủ lúc fabric nghỉ |
-| AFE7950 | 9,5 W | Datasheet, làm tròn lên từ mode khoảng 9 W |
+| Agilex 5, HPS, 25 GbE, JESD | 35 W | 4T4R FFT running continuously, RAM and DSP full, plus the transceivers. 18 W is only enough while the fabric is idle |
+| AFE7950 | 9.5 W | Datasheet, rounded up from a mode of about 9 W |
 | DDR | 2 W | |
-| SI5518 | 1,2 W | |
-| OCXO lúc khởi động | 2,5 W | |
-| SFP28 | 1,5 W | |
-| Bốn PA phát cùng lúc | 21 W | 28 dBm mỗi PA, hiệu suất 12% lúc OFDM backoff |
-| LNA, chuyển TDD, logic | 2 W | |
-| Cảm biến | 0,5 W | |
-| Tổng tại tải | 75,2 W | |
-| Tổn hao POL, hiệu suất 85% | 13,3 W | 75,2 / 0,85 − 75,2 |
-| Công suất vào 12 V | 88,5 W | |
-| Dư 10% | 8,8 W | |
-| Ngưỡng nguồn phải chịu | 97,3 W | 8,1 A ở 12 V |
+| SI5518 | 1.2 W | |
+| OCXO at startup | 2.5 W | |
+| SFP28 | 1.5 W | |
+| Four PAs transmitting together | 21 W | 28 dBm each PA, 12% efficiency at OFDM backoff |
+| LNA, TDD switch, logic | 2 W | |
+| Sensors | 0.5 W | |
+| Total at the load | 75.2 W | |
+| POL loss, 85% efficiency | 13.3 W | 75.2 / 0.85 − 75.2 |
+| Power in at 12 V | 88.5 W | |
+| 10% margin | 8.8 W | |
+| Supply must support | 97.3 W | 8.1 A at 12 V |
 
-18 W bỏ. Con số đó không gồm FFT bốn anten chạy liên tục, cũng không gồm lane 25 GbE và tám lane JESD luôn bật. Trên Sail River, cấu hình 4T4R hai sóng mang dùng khoảng 61% logic, 95% RAM và 45% DSP của một Agilex 5 cỡ A5E065. Transceiver cộng fabric ở mức đó là khoảng 35 W cho đến khi Power Analyzer cho số thật. Agilex 7 còn cao hơn, nên máy này giữ Agilex 5.
+Drop the 18 W figure. That number does not include a four-antenna FFT running continuously, and it does not include the 25 GbE lane and eight JESD lanes left on. On Sail River, a 4T4R two-carrier configuration uses about 61% of the logic, 95% of the RAM, and 45% of the DSP of an Agilex 5 around the A5E065 size. Transceivers plus fabric at that level are about 35 W until the Power Analyzer gives a real number. Agilex 7 is higher still, so this unit stays on Agilex 5.
 
-Nguồn 12 V ghi trên nhãn phải còn ít nhất 97 W sau khi giảm công suất theo nhiệt. Ở +70 °C nhiều bộ nguồn chỉ còn khoảng 60% công suất nhãn. Nhãn cần khoảng 97 / 0,6 = 162 W. Chọn bộ 12 V, 15 A, 180 W, dải −40 °C đến +85 °C. Điện áp vào vẫn là 12 V.
+The 12 V supply printed on the label must still deliver at least 97 W after thermal derating. At +70 °C many supplies are down to about 60% of the labeled power. The label needs about 97 / 0.6 = 162 W. Choose a 12 V, 15 A, 180 W supply, rated from −40 °C to +85 °C. The input voltage is still 12 V.
 
-Mỗi rail cũng dư 10% dòng so với dòng max của tải trên rail đó, không chỉ dư ở đầu 12 V.
+Each rail also has 10% current margin over the maximum load current on that rail, not only at the 12 V input.
 
-| Rail | Việc | Nâng cấp so với bản trước |
+| Rail | Job | Change from the previous revision |
 | --- | --- | --- |
-| 12 V vào | Cầu chì, chống ngược cực, TVS, lọc EMI, hạn dòng khởi động | Bản trước chỉ ghi 12 V |
-| Core FPGA | POL đúng thứ tự bật của Agilex, có PG và đo dòng | Không dùng một POL chung |
-| 0,9 V và 1,2 V AFE | POL riêng, tụ sát ball | |
-| VDDA 1,8 V AFE | LDO sau POL, không chung với 1,8 V số | Tách analog |
-| 5 V PA | Bốn cầu chì điện tử, mỗi anten một đường, cắt bằng GPIO TDD | Một rail 5 V chung không đủ để cô lập lỗi |
-| 3,3 V clock và SFP | POL riêng | |
+| 12 V input | Fuse, reverse-polarity protection, TVS, EMI filter, inrush limit | The previous revision only said 12 V |
+| FPGA core | A POL that follows the Agilex power-up order, with PG and current sense | Do not share one POL |
+| 0.9 V and 1.2 V AFE | A separate POL, capacitors next to the balls | |
+| AFE VDDA 1.8 V | An LDO after the POL, not shared with the digital 1.8 V | Split the analog rail |
+| 5 V PA | Four electronic fuses, one path per antenna, cut by the TDD GPIO | One shared 5 V rail is not enough to isolate a fault |
+| 3.3 V clock and SFP | A separate POL | |
 
-Nguồn đầy tải vẫn là bộ 12 V, 180 W. Cổng MGMT mang thêm PoE Class 8. PoE chỉ nuôi máy khi HPS đã giới hạn PA, vì chuẩn dừng ở 71,3 W.
+The full-load source is still the 12 V, 180 W supply. The MGMT port also carries PoE Class 8. PoE powers the unit only after the HPS has limited the PAs, because the standard stops at 71.3 W.
 
-Cảnh báo đi vào HPS khi dòng 12 V vượt 90% của 8,1 A, tức khoảng 7,3 A, hoặc khi một PA vượt dòng định mức. FPGA, AFE và bốn PA tản qua vỏ nhôm bằng pad nhiệt. Không dựa vào quạt, vì quạt là điểm hỏng và là lỗ xuyên nhiễu.
+An alarm goes to the HPS when the 12 V current passes 90% of 8.1 A, about 7.3 A, or when one PA passes its rated current. The FPGA, the AFE, and the four PAs dump heat into the aluminum enclosure through thermal pads. Do not rely on a fan. A fan is a failure point and a hole for radiated noise.
 
-24 dBm là mức tại cổng anten. PA bù suy hao lọc và chuyển mạch.
+24 dBm is the level at the antenna port. The PA makes up the filter and switch loss.
 
-| Điểm | Mức trung bình |
+| Point | Average level |
 | --- | --- |
-| Cổng anten | 24 dBm |
-| Sau chuyển TDD | khoảng 25 dBm |
-| Sau lọc gốm hoặc BAW | khoảng 27 dBm |
-| Ngõ ra PA | khoảng 28 dBm |
+| Antenna port | 24 dBm |
+| After the TDD switch | about 25 dBm |
+| After the ceramic or BAW filter | about 27 dBm |
+| PA output | about 28 dBm |
 
-Đỉnh OFDM cao hơn khoảng 8 dB nếu chưa CFR. PA và chuyển mạch phải chịu đỉnh đó. DPD chưa bắt buộc ở 24 dBm. Coupler khoảng 20 dB vẫn gắn để đo.
+The OFDM peak is about 8 dB higher if CFR is not present yet. The PA and the switch must survive that peak. DPD is not required yet at 24 dBm. A coupler of about 20 dB is still fitted so the level can be measured.
 
-Rail 48 V chỉ nằm ở phía sơ cấp cách ly của bộ PoE. PA, FPGA và clock không có rail 48 V.
+The 48 V rail exists only on the isolated primary side of the PoE supply. The PA, the FPGA, and the clock have no 48 V rail.
 
-## 4. Cổng MGMT, nguồn PoE và cổng debug
+## 4. MGMT port, PoE power, and the debug port
 
-Một RJ45 làm cả hai việc: Ethernet quản lý vào HPS, và nguồn PoE vào chip PD. Fronthaul vẫn là SFP28, không đi chung cáp này.
+One RJ45 does both jobs: management Ethernet into the HPS, and PoE power into the PD chip. The fronthaul stays on the SFP28. It does not share this cable.
 
-Chip nguồn là **TPS2373-4** của TI, PD IEEE 802.3bt Type 4, Class 8. Datasheet ghi mức nhận được khoảng 71,3 W. Bản đánh giá TPS2373-4EVM-758 là bộ 70 W. Không dùng TPS23734. Chip đó chỉ tới Class 4, khoảng 25,5 W.
+The power chip is TI's **TPS2373-4**, an IEEE 802.3bt Type 4, Class 8 PD. The datasheet lists about 71.3 W delivered. The TPS2373-4EVM-758 evaluation board is a 70 W supply. Do not use the TPS23734. That chip only reaches Class 4, about 25.5 W.
 
-PHY quản lý là **DP83867**, RGMII vào EMAC của HPS. PHY lấy 3,3 V và 2,5 V sau diode-OR, không lấy từ phía 48 V.
+The management PHY is the **DP83867**, RGMII into an HPS EMAC. The PHY takes 3.3 V and 2.5 V after the diode-OR. It does not take power from the 48 V side.
 
-Sau bộ chuyển từ 48 V xuống 12 V, rail 12 V chỉ còn khoảng 60 W. Đủ cho FPGA, AFE, clock, PHY và các cổng debug, không đủ bốn PA phát hết công suất. Khi chỉ cắm PoE, HPS đọc chân BT và chỉ bật một hoặc hai PA. Bốn PA chỉ bật khi có nguồn 12 V, 180 W.
+After the 48 V to 12 V converter, the 12 V rail has only about 60 W left. That is enough for the FPGA, the AFE, the clock, the PHY, and the debug ports. It is not enough for four PAs at full transmit power. When only PoE is plugged in, the HPS reads the BT pin and enables only one or two PAs. All four PAs turn on only when the 12 V, 180 W supply is present.
 
 ```text
-RJ45 MGMT, magjack bốn cặp, chịu Class 8
-  dữ liệu, sau biến áp
+RJ45 MGMT, four-pair magjack, Class 8 rated
+  data, after the transformer
         -> DP83867 -> RGMII -> HPS
-  điểm giữa bốn cặp
-        cặp 1-2 và 3-6 -> cầu chỉnh lưu A
-        cặp 4-5 và 7-8 -> cầu chỉnh lưu B
-        hai cực dương nối VDD, hai cực âm nối VSS
+  center taps of the four pairs
+        pairs 1-2 and 3-6 -> bridge rectifier A
+        pairs 4-5 and 7-8 -> bridge rectifier B
+        the two positive poles join at VDD, the two negative poles join at VSS
 TPS2373-4
-  DEN: 24,9 kΩ lên VDD
-  CLSA, CLSB xuống VSS qua điện trở Class 8 trong datasheet
-  RTN -> mass sơ cấp của bộ chuyển cách ly 48 V sang 12 V
+  DEN: 24.9 kΩ up to VDD
+  CLSA, CLSB down to VSS through the Class 8 resistors in the datasheet
+  RTN -> primary ground of the isolated 48 V to 12 V converter
   PG, TPH, TPL, BT -> opto -> HPS
-  APD -> phát hiện jack 12 V. Có 12 V thì ngắt MOSFET PoE
-Bộ chuyển cách ly -> diode OR với jack 12 V -> lọc EMI -> POL
-Cổng debug lấy 3,3 V từ LDO sau diode-OR, qua eFuse khoảng 0,5 A
+  APD -> detects the 12 V jack. If 12 V is present, turn off the PoE MOSFET
+Isolated converter -> diode-OR with the 12 V jack -> EMI filter -> POLs
+Debug ports take 3.3 V from an LDO after the diode-OR, through an eFuse of about 0.5 A
 ```
 
-Jack 12 V luôn thắng nếu cắm cả hai. PoE không đi thẳng vào rail 5 V của PA. Header debug không có chân 12 V. JTAG, UART, SPI và I2C vẫn sống khi chỉ cắm cáp MGMT, vì chúng nằm sau bộ chuyển 12 V. Mức logic của header theo bank HPS, không cắm adapter 5 V TTL.
+The 12 V jack always wins if both sources are plugged in. PoE does not go straight onto the PA 5 V rail. The debug header has no 12 V pin. JTAG, UART, SPI, and I2C still run when only the MGMT cable is plugged in, because they sit after the 12 V converter. Header logic levels follow the HPS bank. Do not plug in a 5 V TTL adapter.
 
-## 5. Sơ đồ nối để đường cao tốc ngắn
+## 5. Connection diagram so the high-speed routes stay short
 
-Không gán số ball Agilex trong file này. Số ball phụ thuộc mã OPN và phải lấy từ Pin Planner sau khi mở project Sail River. Số ball AFE lấy từ datasheet AFE7950 Rev. E, gói 400 ball, 17 mm × 17 mm. Dưới đây là luật nối để đường 8 Gb/s và clock không bị kéo chéo.
+This file does not assign Agilex ball numbers. Ball numbers depend on the OPN and must come from Pin Planner after the Sail River project is opened. AFE ball numbers come from the AFE7950 datasheet Rev. E, 400-ball package, 17 mm × 17 mm. The rules below keep the 8 Gb/s routes and the clocks from crossing the board.
 
-Xếp trên mạch, từ cổng quang vào trong:
+Place the parts, from the optical port inward:
 
 ```text
-SFP28 -- quad A của F-Tile -- HPS và DDR
+SFP28 -- F-Tile quad A -- HPS and DDR
                 |
-             SI5518 nằm giữa F-Tile và AFE
+             SI5518 between the F-Tile and the AFE
                 |
-             AFE7950 đối diện quad B
+             AFE7950 facing quad B
                 |
-             bốn cụm RF sát chân analog của AFE
+             four RF clusters next to the AFE analog pins
 ```
 
-Quad A chỉ nhận 156,25 MHz. Quad B chỉ nhận 122,88 MHz. Không đi chung refclk.
+Quad A receives only 156.25 MHz. Quad B receives only 122.88 MHz. Do not share a refclk.
 
-### JESD, 8 lane, 8110,08 Mb/s
+### JESD, 8 lanes, 8110.08 Mb/s
 
-AFE có 8 lane, tối đa 29,5 Gb/s. Thiết kế này không dùng 29,5 Gb/s. Giữ 8,11 Gb/s cho khớp IP Sail River và để mạch in dễ hơn. Lane xếp liền trong một quad, không đảo thứ tự, không bắc qua quad khác.
+The AFE has 8 lanes, up to 29.5 Gb/s. This design does not use 29.5 Gb/s. Keep 8.11 Gb/s so it matches the Sail River IP and so the board is easier to build. Lanes stay together in one quad, in order, and do not cross into another quad.
 
-| Tín hiệu AFE | Chiều dữ liệu | Tín hiệu FPGA | Việc |
+| AFE signal | Data direction | FPGA signal | Job |
 | --- | --- | --- | --- |
-| SRX1+/- đến SRX4+/- | FPGA phát, AFE nhận | TX quad B, lane 0–3 | Mẫu DAC, bốn anten |
-| STX1+/- đến STX4+/- | AFE phát, FPGA nhận | RX quad B, lane 0–3 | Mẫu ADC, bốn anten |
-| STX5+/- đến STX6+/- | AFE phát, FPGA nhận | RX quad B, lane 4–5 | Hai feedback |
-| SRX5+/- đến SRX8+/- | Không dùng ở bản này | Để trống, có termination theo datasheet | Dự phòng |
-| REFCLK+/- | SI5518 vào AFE | 491,52 MHz, cặp vi sai | PLL lấy mẫu RF |
-| SYSREF+/- | SI5518 vào AFE và vào quad B | Cùng nguồn, cùng dài | Căn subclass 1, rồi tắt |
+| SRX1+/- through SRX4+/- | FPGA transmits, AFE receives | TX quad B, lanes 0–3 | DAC samples, four antennas |
+| STX1+/- through STX4+/- | AFE transmits, FPGA receives | RX quad B, lanes 0–3 | ADC samples, four antennas |
+| STX5+/- through STX6+/- | AFE transmits, FPGA receives | RX quad B, lanes 4–5 | Two feedback paths |
+| SRX5+/- through SRX8+/- | Unused in this revision | Left open, terminated as the datasheet says | Spare |
+| REFCLK+/- | SI5518 into the AFE | 491.52 MHz, differential pair | RF sample PLL |
+| SYSREF+/- | SI5518 into the AFE and into quad B | Same source, same length | Subclass 1 alignment, then turn it off |
 
-STX của AFE là đầu ra. SRX của AFE là đầu vào. Nối ngược chiều này thì link không lên.
+AFE STX is an output. AFE SRX is an input. Reversing this direction means the link does not come up.
 
-Mỗi cặp vi sai cùng chiều dài trong cặp, chênh giữa các lane dưới mức mà IP JESD cho phép ở 8,11 Gb/s. AC-couple trên lane nếu datasheet của cả hai đầu yêu cầu. Không đi lane dưới phần nguồn PA.
+Each differential pair is length-matched inside the pair, and the skew between lanes stays under the limit the JESD IP allows at 8.11 Gb/s. AC-couple a lane if both datasheets require it. Do not route a lane under the PA power section.
 
-### Clock và điều khiển
+### Clock and control
 
-| Tín hiệu | Nối | Tối ưu |
+| Signal | Connection | Preference |
 | --- | --- | --- |
-| SI5518 ra 156,25 MHz | Refclk quad A | Ngắn, không đi gần PA |
-| SI5518 ra 122,88 MHz | Refclk quad B và clock fabric | Cùng chip với SYSREF |
-| SI5518 ra 491,52 MHz | AFE REFCLK+/- | Ngắn nhất trong các clock analog |
-| SYSREF | AFE và quad B | Ghép độ dài, tắt sau bring-up |
-| SPICLK, SPISEN, SPISDIO, SPISDO | HPS SPI | 1,8 V, chung RESETZ |
-| RESETZ | HPS GPIO | Xung tối thiểu 1 ms theo datasheet AFE |
-| GPIO TDD | Fabric bank 1,8 V | Tới enable PA và chuyển TDD, không qua HPS |
-| Chọn băng n77 hoặc n79 | Fabric GPIO | Một bit cho bốn anten, vì cả máy cùng một băng tại một thời điểm |
-| LOS, lock của SI5518 | HPS | Báo M-plane khi mất SyncE |
+| SI5518 output, 156.25 MHz | Quad A refclk | Short, and not near a PA |
+| SI5518 output, 122.88 MHz | Quad B refclk and the fabric clock | Same chip as SYSREF |
+| SI5518 output, 491.52 MHz | AFE REFCLK+/- | The shortest of the analog clocks |
+| SYSREF | AFE and quad B | Length-matched, off after bring-up |
+| SPICLK, SPISEN, SPISDIO, SPISDO | HPS SPI | 1.8 V, shared with RESETZ |
+| RESETZ | HPS GPIO | A pulse of at least 1 ms, per the AFE datasheet |
+| TDD GPIO | Fabric 1.8 V bank | To the PA enable and the TDD switch, not through the HPS |
+| n77 or n79 band select | Fabric GPIO | One bit for four antennas, because the whole unit is on one band at a time |
+| SI5518 LOS and lock | HPS | Report to the M-plane when SyncE is lost |
 
-SPI của AFE không lấy từ bank transceiver. Bank đó để dành cho JESD và 25 GbE.
+Do not take the AFE SPI from a transceiver bank. That bank is reserved for JESD and 25 GbE.
 
-### Một anten
+### One antenna
 
 ```text
-AFE TXx -> driver -> PA 3,5 GHz hoặc PA 4,7 GHz
-        -> coupler -> lọc -> chuyển TDD -> cổng anten
-coupler -20 dB -> chuyển 4 chọn 2 -> AFE FB0 hoặc FB1
-cổng anten -> chuyển TDD -> lọc -> LNA -> AFE RXx
+AFE TXx -> driver -> 3.5 GHz PA or 4.7 GHz PA
+        -> coupler -> filter -> TDD switch -> antenna port
+coupler -20 dB -> 4-to-2 switch -> AFE FB0 or FB1
+antenna port -> TDD switch -> filter -> LNA -> AFE RXx
 ```
 
-Bốn coupler gom vào hai cổng FB. Hai anten một cặp, vì AFE7950 chỉ có hai feedback. Ở 24 dBm, feedback chỉ để đo. DPD gắn sau nếu ACLR chưa đạt.
+Four couplers combine into two FB ports. Two antennas share a pair, because the AFE7950 has only two feedback receivers. At 24 dBm, feedback is only for measurement. Add DPD later if ACLR is not met.
 
-Nhánh 3,5 GHz và nhánh 4,7 GHz không phát cùng lúc trên một anten. Một bit chọn băng cắt enable PA đang nghỉ.
+The 3.5 GHz branch and the 4.7 GHz branch do not transmit at the same time on one antenna. One band-select bit cuts the enable of the PA that is idle.
 
-## 6. Môi trường và chống nhiễu
+## 6. Environment and interference
 
-Máy 24 dBm vẫn phải chịu điều kiện khắc nghiệt. Mục tiêu thiết kế, chưa phải giấy chứng nhận:
+A 24 dBm unit still has to survive a harsh environment. These are design targets, not a certificate:
 
-| Việc | Mốc |
+| Item | Target |
 | --- | --- |
-| Nhiệt độ làm việc | −40 °C đến +70 °C ngoài vỏ |
-| Nhiệt độ tồn trữ | −40 °C đến +85 °C |
-| Rung, xóc | MIL-STD-810H, Method 514 và 516 |
-| Ẩm, sương muối | MIL-STD-810H, Method 507 và 509. Vỏ kín, van Gore |
-| Phát xạ và miễn nhiễm | MIL-STD-461G: CE102, CS101, CS114, CS115, CS116, RE102, RS103 |
-| ESD cổng ngoài | IEC 61000-4-2, mức 4 |
+| Operating temperature | −40 °C to +70 °C outside the enclosure |
+| Storage temperature | −40 °C to +85 °C |
+| Vibration and shock | MIL-STD-810H, Methods 514 and 516 |
+| Humidity and salt fog | MIL-STD-810H, Methods 507 and 509. Sealed enclosure, Gore vent |
+| Emissions and susceptibility | MIL-STD-461G: CE102, CS101, CS114, CS115, CS116, RE102, RS103 |
+| ESD on external ports | IEC 61000-4-2, level 4 |
 
-Thành phần phải thêm:
+Parts that have to be added:
 
-- Vỏ nhôm liền, gioăng dẫn điện, nắp bắt vít đều. Mạch số, AFE và PA nằm trong ba khoang.
-- Nắp chắn trên Agilex, trên AFE và trên cụm PA.
-- Lọc nguồn đầu vào, không đưa 12 V thẳng vào POL.
-- Cổng anten là cổng ra vỏ duy nhất của RF. Fronthaul chỉ dùng quang, không dùng đồng 25 GbE.
-- Linh kiện nhiệt công nghiệp hoặc ô tô, không dùng grade thương mại 0–70 °C cho OCXO, DDR, POL và PA.
-- Phủ conformal sau khi hết giai đoạn sửa lỗi.
-- Vít tiếp địa vỏ ở một điểm sao, tách đất analog AFE và đất PA.
+- A continuous aluminum enclosure, conductive gasket, and a lid screwed down evenly. Digital, AFE, and PA sit in three cavities.
+- Shield lids over the Agilex, over the AFE, and over the PA cluster.
+- An input power filter. Do not bring 12 V straight into a POL.
+- The antenna port is the only RF port that leaves the enclosure. The fronthaul is optical only. Do not use copper 25 GbE.
+- Industrial or automotive temperature parts. Do not use a commercial 0–70 °C grade for the OCXO, DDR, POLs, or PAs.
+- Conformal coat after the debug stage is finished.
+- One star point for the enclosure ground screws, with the AFE analog ground and the PA ground kept apart.
 
-## 7. Cổng debug và phát triển
+## 7. Debug and development ports
 
-RJ45 MGMT nằm ở mép vỏ, cạnh cụm debug. Cáp MGMT vừa là Ethernet quản lý vừa là nguồn PoE. Các header còn lại nằm sau nắp, không để hở khi vận hành.
+The MGMT RJ45 sits on the enclosure edge, next to the debug cluster. The MGMT cable is both management Ethernet and PoE power. The other headers sit behind the lid. Do not leave them open in operation.
 
-| Cổng | Việc | Nguồn |
+| Port | Job | Power |
 | --- | --- | --- |
-| RJ45 MGMT | 1000BASE-T vào HPS qua DP83867. PoE vào TPS2373-4 | Class 8 trên cáp, dữ liệu cách ly bằng biến áp |
-| JTAG FPGA | Nạp và biên dịch lại khi sửa DSP Builder | 3,3 V sau diode-OR, eFuse 0,5 A |
-| UART HPS | Console Linux | Cùng rail 3,3 V đó |
-| Header SPI | Đọc trực tiếp AFE7950 và SI5518 khi phần mềm chưa lên | Cùng rail, mức theo bank HPS |
-| I2C | Cảm biến nhiệt và EEPROM hiệu chuẩn | Cùng rail |
-| U.FL 10 MHz | So clock với máy chuẩn | Không cấp nguồn ra đầu nối |
-| U.FL 1 PPS | So pha PTP | Không cấp nguồn ra đầu nối |
-| Hàng test point | Đo khi mất nguồn, mất clock, rớt JESD, chết một anten hoặc mất MGMT | Không cấp nguồn. Mỗi cụm có một pad đất cạnh đó |
-| PMBus hoặc sense dòng | Đo từng rail, đối chiếu ngân sách 97 W | Sense, không lấy tải từ đầu đo |
-| LED trong vỏ | Nguồn, lock PTP, lock JESD, lỗi PA, nguồn đang là PoE hay jack 12 V | Rail 3,3 V |
+| RJ45 MGMT | 1000BASE-T into the HPS through the DP83867. PoE into the TPS2373-4 | Class 8 on the cable, data isolated by the transformer |
+| FPGA JTAG | Program and rebuild while editing DSP Builder | 3.3 V after the diode-OR, 0.5 A eFuse |
+| HPS UART | Linux console | The same 3.3 V rail |
+| SPI header | Read the AFE7950 and SI5518 directly before software is up | Same rail, level follows the HPS bank |
+| I2C | Temperature sensors and the calibration EEPROM | Same rail |
+| 10 MHz U.FL | Compare the clock with a reference instrument | No power out of the connector |
+| 1 PPS U.FL | Compare PTP phase | No power out of the connector |
+| Test-point row | Measure loss of power, loss of clock, a dropped JESD link, one dead antenna, or loss of MGMT | No power. Each cluster has a ground pad next to it |
+| PMBus or current sense | Measure each rail and compare it with the 97 W budget | Sense only. Do not load the probe point |
+| LEDs inside the enclosure | Power, PTP lock, JESD lock, PA fault, and whether power is PoE or the 12 V jack | 3.3 V rail |
 
-Chỉ cắm PoE thì JTAG và UART vẫn dùng được. Bốn PA không bật hết trong trạng thái đó.
+With only PoE plugged in, JTAG and UART still work. All four PAs do not turn on in that state.
 
-Test point nằm sau nắp, in tên trên mặt mạch, để hở khi phủ conformal. Mỗi cụm có một pad đất ngay cạnh để kẹp mass của máy đo cho ngắn. Không khoét lỗ ra vỏ.
+Test points sit behind the lid, with names printed on the board, and they stay exposed under the conformal coat. Each cluster has a ground pad right beside it so the instrument ground clip stays short. Do not cut a hole through the enclosure.
 
-Không hàn que đo thẳng vào cặp JESD 8,11 Gb/s, vào REFCLK 491,52 MHz, hay vào refclk của F-Tile. Những đường đó chỉ xem qua bản sao đã đi qua buffer, hoặc qua điện trở nối tiếp khoảng 1 kΩ trên một bản copy. Lane dữ liệu không có test point.
+Do not solder a probe directly onto an 8.11 Gb/s JESD pair, onto the 491.52 MHz REFCLK, or onto an F-Tile refclk. Watch those routes through a buffered copy, or through a series resistor of about 1 kΩ on a copy. Data lanes have no test point.
 
-Phía sơ cấp PoE có thể tới khoảng 57 V. Các điểm đó xếp riêng, cách hàng 1,8 V và 3,3 V.
+The PoE primary side can reach about 57 V. Keep those points in their own area, away from the 1.8 V and 3.3 V rows.
 
-| Triệu chứng | Điểm đo | Thấy gì thì kết luận |
+| Symptom | Where to measure | What the reading means |
 | --- | --- | --- |
-| Không lên nguồn | 12 V trước eFuse, 12 V sau eFuse, PG của từng POL | Mất trước eFuse là jack hoặc cầu chì. Mất sau eFuse là hạn dòng hoặc ngược cực. PG một rail xuống là POL đó chưa bật, xem thứ tự nhóm 1 rồi 2A rồi 2B của Agilex |
-| Rail nào đó sụt khi phát | Sense dòng 12 V, sense từng PA, 0,9 V và 1,2 V AFE, core FPGA | Dòng 12 V trên khoảng 7,3 A là quá 90% ngân sách. Một PA cao hơn các anten kia là lỗi anten đó |
-| Cắm PoE mà không chạy | VDD của TPS2373-4, PG, BT và TPH/TPL sau opto | Không có VDD là cáp hoặc cầu chỉnh lưu. Có VDD mà PG chưa lên là bộ chuyển 48 V sang 12 V. BT không báo Type 4 là switch không cấp Class 8 |
-| Cắm cả hai nguồn mà vẫn yếu | APD, PG của jack 12 V | APD thấp thì MOSFET PoE chưa nhả, jack 12 V chưa thắng |
-| Không khóa PTP hoặc SyncE | U.FL 10 MHz của OCXO, LOS và lock của SI5518, bản sao 122,88 MHz và 156,25 MHz | OCXO chết thì cả cây clock chết. LOS lên mà OCXO còn là mất SyncE trên quang. 122,88 MHz mất mà 10 MHz còn là SI5518 |
-| JESD không lên | SYSREF qua buffer, RESETZ của AFE, lock JESD đưa ra GPIO | SYSREF phải có vài cạnh lúc bring-up rồi tắt. RESETZ phải xuống ít nhất 1 ms. Lock không lên sau đó thì xem SPI và thứ tự lane, không đo trực tiếp cặp vi sai |
-| Một anten không phát | Enable PA anten đó, bit chọn băng, TDD, U.FL lấy từ coupler −20 dB | Enable thấp là GPIO hoặc eFuse PA đã cắt. Đúng enable mà U.FL không có sóng là PA hoặc lọc. U.FL có sóng mà cổng anten không có là chuyển TDD hoặc đầu nối |
-| Phát nhầm băng | Bit chọn n77 hoặc n79, enable của PA đang phải tắt | Hai enable cùng cao là lỗi phần mềm. Chỉ một băng được bật |
-| Thu ồn hoặc không thu | Nguồn LNA, đường TDD phía thu | LNA mất nguồn thì bốn anten thu cùng chết. Một anten thì xem chuyển TDD của anten đó |
-| MGMT không link | Điện trở nối tiếp trên RX_CLK của RGMII, chân reset PHY, LED link của DP83867 | PHY không reset được thì HPS chưa cấp clock quản lý. LED link tắt mà PHY đã có nguồn là cáp hoặc biến áp |
-| Cắt vì nóng | Cảm biến trên vỏ FPGA, trên AFE, trên từng PA, đọc qua I2C | Một PA nóng hơn ba PA kia là anten đó. Cả FPGA nóng là tải số, không phải PA |
+| Power does not come up | 12 V before the eFuse, 12 V after the eFuse, PG of each POL | Lost before the eFuse means the jack or the fuse. Lost after the eFuse means current limit or reversed polarity. One rail's PG low means that POL has not turned on. Check the Agilex group order: 1, then 2A, then 2B |
+| A rail sags while transmitting | 12 V current sense, each PA sense, AFE 0.9 V and 1.2 V, FPGA core | 12 V current above about 7.3 A is past 90% of the budget. One PA higher than the other antennas is a fault on that antenna |
+| PoE is plugged in and the unit does not run | TPS2373-4 VDD, PG, BT, and TPH/TPL after the opto | No VDD means the cable or a bridge rectifier. VDD present and PG still down means the 48 V to 12 V converter. BT not reporting Type 4 means the switch is not granting Class 8 |
+| Both supplies are plugged in and the unit is still weak | APD, PG of the 12 V jack | APD low means the PoE MOSFET has not released, so the 12 V jack has not won |
+| PTP or SyncE does not lock | OCXO 10 MHz U.FL, SI5518 LOS and lock, copies of 122.88 MHz and 156.25 MHz | A dead OCXO kills the whole clock tree. LOS high while the OCXO is alive means SyncE was lost on the optical link. 122.88 MHz gone while 10 MHz remains means the SI5518 |
+| JESD does not come up | SYSREF through a buffer, AFE RESETZ, JESD lock brought out to a GPIO | SYSREF must have a few edges at bring-up and then turn off. RESETZ must stay low for at least 1 ms. If lock still does not come up, check SPI and lane order. Do not probe the differential pair directly |
+| One antenna does not transmit | That antenna's PA enable, the band-select bit, TDD, and the U.FL taken from the −20 dB coupler | Enable low means the GPIO or the PA eFuse has cut it. Enable correct and no signal on the U.FL means the PA or the filter. Signal on the U.FL and nothing at the antenna port means the TDD switch or the connector |
+| Transmitting on the wrong band | The n77 or n79 select bit, and the enable of the PA that should be off | Both enables high is a software fault. Only one band may be on |
+| Receive is noisy, or there is no receive | LNA power, the receive-side TDD path | LNA power lost means all four receive antennas die together. One antenna means look at that antenna's TDD switch |
+| MGMT does not link | Series resistor on RGMII RX_CLK, PHY reset pin, DP83867 link LED | If the PHY cannot be reset, the HPS has not provided the management clock. Link LED off while the PHY has power means the cable or the transformer |
+| Cut off by heat | Sensors on the FPGA lid, on the AFE, and on each PA, read over I2C | One PA hotter than the other three is that antenna. The whole FPGA hot is digital load, not the PA |
 
-U.FL của coupler chỉ để đo khi nắp mở. Khi vận hành, đường đo đó nối vào feedback của AFE, không để hở.
+The coupler U.FL is only for measurement with the lid open. In operation that measurement path connects to the AFE feedback. Do not leave it open.
 
-## 8. BOM và giá
+## 8. BOM and price
 
-Giá linh kiện bán lẻ là mốc tham chiếu, một chiếc, khoảng tháng 10/2026. Hàng FPGA, license và lọc khoang phải hỏi hãng. Cột giá để trống khi không có niêm yết đáng tin.
+Retail component prices are a reference, one piece, around October 2026. Ask the vendor for the FPGA, the licenses, and the cavity filters. Leave the price cell blank when there is no trustworthy list price.
 
-| Hạng mục | Mã | SL | Giá tham chiếu | Ghi chú |
+| Item | Part | Qty | Reference price | Note |
 | --- | --- | --- | --- | --- |
-| FPGA SoC | Agilex 5 E-series hoặc D-series, mã nằm trong Sail River, ví dụ họ A5E | 1 | Báo giá Altera | Không mua Agilex 7 cho máy 24 dBm trừ khi đo nguồn còn dư |
-| License công cụ | Quartus Prime cho Agilex, DSP Builder | 1 | Báo giá Altera | Bản free không tổng hợp được dòng này |
-| Workload O-RU | Gói Sail River | 1 | Báo giá Altera | Có eCPRI, O-RAN, JESD, low-PHY, DUC/DDC |
-| AFE | AFE7950IABJ, 400 ball | 1 | Khoảng 2 130 USD / chiếc trên [LCSC](https://www.lcsc.com/product-image/C3606796.html), mức 1 chiếc. Mức 1 000 chiếc khoảng 1 890 USD. Hết hàng tại thời điểm xem | Datasheet [Rev. E](https://www.ti.com/lit/ds/symlink/afe7950.pdf). Giá TI trực tiếp hỏi TI |
-| Clock | SI5518 | 1 | Hỏi Skyworks | Một mã phân phối ghi khoảng 27 USD. Mức đó thấp bất thường với dòng NetSync, không dùng làm giá đặt hàng |
-| OCXO | 10 MHz, loại giữ được holdover PTP | 1 | Khoảng 50 đến 200 USD | Thạch anh thường không đủ 30 phút holdover |
-| Nhớ | DDR cho HPS, đúng loại mà board Agilex 5 hỗ trợ | 1 cụm | Khoảng 20 đến 60 USD | |
-| Quang | SFP28 25 GbE SR và lồng SFP | 1 | Khoảng 30 đến 80 USD | |
-| PA | Hai PA small cell mỗi anten, khoảng 28 dBm, một con 3,3–4,2 GHz và một con 4,4–5,0 GHz | 8 | Khoảng 15 đến 40 USD mỗi con | Không dùng PA GaN 8 W, 48 V |
-| LNA và chuyển TDD | Module phủ 2,3–5 GHz, loại QPB9850 hoặc tương đương | 4 | Hỏi Qorvo | Một module rộng được cho cả hai băng ở chiều thu |
-| Lọc | BAW hoặc gốm, một lọc 3,3–4,2 GHz và một lọc 4,4–5,0 GHz mỗi anten | 8 | Khoảng 5 đến 20 USD mỗi cái | Không dùng lọc khoang ở 24 dBm |
-| Coupler | Khoảng 20 dB, dải 3–5 GHz | 4 | Khoảng 2 đến 8 USD | |
-| Nguồn | Bộ 12 V, 15 A, 180 W, −40 °C đến +85 °C, cộng lọc EMI, cầu chì, TVS | 1 bộ | Khoảng 80 đến 200 USD | Chịu 97 W sau khi giảm công suất theo nhiệt |
-| MGMT và PoE | RJ45 magjack bốn cặp, DP83867, TPS2373-4, hai cầu, bộ chuyển cách ly ra 12 V | 1 | Hỏi TI cho TPS2373-4. EVM TPS2373-4EVM-758 là mẫu 70 W | Class 8, khoảng 71,3 W tại chip. Cùng cổng với Ethernet quản lý. Không thay nguồn 180 W |
-| POL và LDO | Rail FPGA, rail AFE, bốn đường PA có cầu chì | 1 bộ | Khoảng 40 đến 120 USD | Mỗi rail dư 10% dòng |
-| Vỏ | Nhôm kín, gioăng dẫn, ba khoang, nắp chắn | 1 | Tùy cơ khí | MIL-STD-810 và MIL-STD-461 là mục tiêu đo, chưa phải chứng chỉ |
-| Debug | JTAG, UART, SPI, I2C, U.FL clock, U.FL coupler mỗi anten, hàng test point nguồn và GPIO | 1 bộ | Khoảng 20 đến 40 USD | Nằm sau nắp. Không đặt test point trên lane JESD |
-| M-plane, servo PSS, CFR, DPD | Chưa mua | 0 | | Mua khi đo thực tế yêu cầu |
+| FPGA SoC | Agilex 5 E-series or D-series, the part that is in Sail River, for example the A5E family | 1 | Altera quote | Do not buy Agilex 7 for a 24 dBm unit unless a power measurement still has margin |
+| Tool license | Quartus Prime for Agilex, DSP Builder | 1 | Altera quote | The free edition cannot synthesize this family |
+| O-RU workload | Sail River package | 1 | Altera quote | Includes eCPRI, O-RAN, JESD, low-PHY, DUC/DDC |
+| AFE | AFE7950IABJ, 400 ball | 1 | About 2,130 USD each on [LCSC](https://www.lcsc.com/product-image/C3606796.html) at qty 1. About 1,890 USD at qty 1,000. Out of stock when last checked | Datasheet [Rev. E](https://www.ti.com/lit/ds/symlink/afe7950.pdf). Ask TI for a direct TI price |
+| Clock | SI5518 | 1 | Ask Skyworks | One distributor listing is about 27 USD. That is unusually low for the NetSync family. Do not use it as the order price |
+| OCXO | 10 MHz, a type that can hold PTP holdover | 1 | About 50 to 200 USD | An ordinary crystal is not enough for 30 minutes of holdover |
+| Memory | DDR for the HPS, the type the Agilex 5 board supports | 1 set | About 20 to 60 USD | |
+| Optical | SFP28 25 GbE SR and an SFP cage | 1 | About 30 to 80 USD | |
+| PA | Two small-cell PAs per antenna, about 28 dBm, one at 3.3–4.2 GHz and one at 4.4–5.0 GHz | 8 | About 15 to 40 USD each | Do not use an 8 W, 48 V GaN PA |
+| LNA and TDD switch | A module covering 2.3–5 GHz, a QPB9850 or equivalent | 4 | Ask Qorvo | One wideband module can cover both bands on the receive side |
+| Filters | BAW or ceramic, one 3.3–4.2 GHz filter and one 4.4–5.0 GHz filter per antenna | 8 | About 5 to 20 USD each | Do not use a cavity filter at 24 dBm |
+| Coupler | About 20 dB, 3–5 GHz | 4 | About 2 to 8 USD | |
+| Supply | 12 V, 15 A, 180 W, −40 °C to +85 °C, plus EMI filter, fuse, and TVS | 1 set | About 80 to 200 USD | Must deliver 97 W after thermal derating |
+| MGMT and PoE | Four-pair RJ45 magjack, DP83867, TPS2373-4, two bridges, isolated converter to 12 V | 1 | Ask TI for the TPS2373-4. The TPS2373-4EVM-758 is a 70 W sample | Class 8, about 71.3 W at the chip. Same port as management Ethernet. It does not replace the 180 W supply |
+| POLs and LDOs | FPGA rails, AFE rails, four PA paths with fuses | 1 set | About 40 to 120 USD | 10% current margin on each rail |
+| Enclosure | Sealed aluminum, conductive gasket, three cavities, shield lids | 1 | Depends on the mechanics | MIL-STD-810 and MIL-STD-461 are measurement targets, not a certificate |
+| Debug | JTAG, UART, SPI, I2C, clock U.FL, one coupler U.FL per antenna, power and GPIO test points | 1 set | About 20 to 40 USD | Behind the lid. Do not put a test point on a JESD lane |
+| M-plane, PSS servo, CFR, DPD | Not purchased yet | 0 | | Buy them when a real measurement requires them |
 
-Tổng linh kiện bán lẻ nhìn thấy, chưa gồm FPGA, license và mạch in, nằm khoảng vài nghìn USD cho một bản mẫu, trong đó AFE là món đắt nhất có giá công khai. Phần làm giá thật của dự án là báo giá Sail River và Agilex.
+The visible retail parts, excluding the FPGA, the licenses, and the printed circuit, come to a few thousand USD for one prototype. The AFE is the most expensive part with a public price. The part that sets the real project price is the Sail River and Agilex quote.
 
-## 9. Chỗ được sửa sau khi mua gói
+## 9. What may be changed after the package is purchased
 
-| Việc | Chỗ sửa |
+| Change | Where to change it |
 | --- | --- |
-| Đổi eAxC, bật tắt sóng mang, chọn 20, 60, 100 MHz | Thanh ghi, HPS, không tổng hợp lại |
-| Thêm 10, 40, 50, 80 MHz | DSP Builder, FFT và hệ số lọc, rồi nạp bitstream mới |
-| Section type mới hoặc kiểu nén khác | Trong IP O-RAN. Không có source thì không sửa được |
-| Đổi băng RF | GPIO chọn PA, NCO của AFE. Không sửa gói C/U |
+| Change eAxC, turn a carrier on or off, select 20, 60, or 100 MHz | Registers, the HPS. Do not resynthesize |
+| Add 10, 40, 50, or 80 MHz | DSP Builder, the FFT and the filter coefficients, then program a new bitstream |
+| A new section type or a different compression format | Inside the O-RAN IP. Without source, it cannot be changed |
+| Change the RF band | The PA-select GPIO and the AFE NCO. Do not change the C/U package |
 
-## 10. Việc chưa điền được trước khi có project Quartus
+## 10. What cannot be filled in before the Quartus project exists
 
-Số ball của Agilex, thứ tự lane mà project Sail River đã đặt, và tần số SYSREF tối đa. Ba thứ này lấy từ project sau khi Altera giao, rồi mới khóa sơ đồ mạch. Không chép ball từ board khác.
+The Agilex ball numbers, the lane order the Sail River project already chose, and the maximum SYSREF frequency. Those three come from the project after Altera delivers it, and only then is the schematic locked. Do not copy balls from another board.

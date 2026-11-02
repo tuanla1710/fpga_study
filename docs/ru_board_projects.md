@@ -1,42 +1,42 @@
-# 540 bài luyện FPGA để develop, sửa và bảo trì O-RU
+# 540 FPGA labs for developing, fixing, and maintaining an O-RU
 
-Solution O-RU của công ty đã chạy ổn định. Các bài này không thay solution đó. Hiệu năng của EP1C6 thấp là cố ý. Mỗi bài luyện một thói quen sẽ dùng lại khi đọc, sửa và giữ nguyên hành vi của code FPGA lớn: một module, một clock, một thanh ghi, một bộ đếm, một lệnh, một đường mẫu.
+The company O-RU solution is already running and stable. These labs do not replace that solution. The low performance of the EP1C6 is intentional. Each lab practices one habit you will reuse when you read, change, and preserve the behavior of a large FPGA: one module, one clock, one register, one counter, one command, one sample path.
 
-Bài 1–500 luyện từng việc. Bài 501–540 gắn cùng lúc LED 7 thanh, LED đơn, nút nhấn, switch và ngõ ra (LCD cùng xung trạng thái). Một bitstream phải hiện số trên 7 thanh, hiện bit trên LED, nhận nút, nhận switch, và đẩy trạng thái ra LCD. Đó là cách quan sát khi sửa O-RU: nhiều ngõ ra cùng nói một sự thật.
+Labs 1–500 practice one job at a time. Labs 501–540 attach the 7-segment LEDs, single LEDs, push buttons, switches, and the outputs (the LCD plus a status pulse) at the same time. One bitstream must show a number on the 7-segment display, show bits on the LEDs, accept buttons, accept switches, and push status out to the LCD. That is how you watch an O-RU while editing it: several outputs report one fact.
 
-Làm một bài mỗi lần. Sửa RTL, biên dịch bằng Quartus 11, nạp `.sof` qua JTAG, rồi đối chiếu 7 thanh, LED và LCD. Không cần làm hết trước khi mở code công ty.
+Do one lab at a time. Edit the RTL, compile with Quartus 11, program the `.sof` over JTAG, then compare the 7-segment display, the LEDs, and the LCD. You do not need to finish every lab before opening the company code.
 
-Chân đã gán: clock 28, LCD D0–D7 = 223–216, RS 215, RW 214, E 213. Chân LED, 7 thanh, nút và switch chưa đọc từ silk nên chưa gán số. Không lấy sơ đồ board khác.
+Pins already assigned: clock 28, LCD D0–D7 = 223–216, RS 215, RW 214, E 213. The LED, 7-segment, button, and switch pins have not been read from the silkscreen, so they have no numbers yet. Do not take another board's schematic.
 
-## Nhóm
+## Groups
 
-| # | Nhóm | Bài | Việc tương ứng trên O-RU đang chạy |
+| # | Group | Labs | Matching work on the running O-RU |
 | --- | --- | --- | --- |
-| 1–20 | Quy trình project | 20 | Mở project, ràng buộc clock, đọc report, nạp image đúng |
-| 21–45 | Thói quen Verilog | 25 | Module nhỏ, hằng số có tên, không latch, ghi chú khớp code |
-| 46–65 | Reset và clock | 20 | Reset về giá trị an toàn, tick lồng nhau, đúng nguồn clock |
-| 66–80 | Đồng bộ và CDC | 15 | Đưa nút và switch vào một clock, không xé bus |
-| 81–105 | Máy trạng thái | 25 | Thêm trạng thái mà không làm hỏng chuyển trạng thái cũ |
-| 106–145 | S-plane timing | 40 | Sửa frame, subframe, symbol mà không lệch một nhịp |
-| 146–185 | M-plane registers | 40 | Sửa map, default, range, phân biệt edit và active |
-| 186–220 | C-plane section | 35 | Sửa parser lệnh, từ chối lệnh sai, không vỡ lịch symbol |
-| 221–255 | U-plane payload | 35 | Sửa header và IQ mà vẫn còn frame id và sequence |
-| 256–285 | Đường IQ | 30 | Thêm pipeline thì delay valid cùng mẫu |
-| 286–310 | Gain và số học | 25 | Đổi độ rộng gain thì sửa luôn bão hòa |
-| 311–335 | NCO và DSP đơn giản | 25 | NCO, lọc đơn giản, biết bit lớn thêm bao nhiêu |
-| 336–360 | Bộ nhớ | 25 | FIFO, RAM, ping-pong, xem cờ full và empty |
-| 361–380 | LCD dùng để debug | 20 | Đưa trạng thái ra LCD để quan sát khi sửa |
-| 381–400 | LED, nút và 7-segment | 20 | Gán đèn và nút theo silk, không lấy pin của board khác |
-| 401–420 | Đường ADC | 20 | Xem mức ngõ vào, giữ số, ghi nhận quá ngưỡng |
-| 421–445 | UART để debug | 25 | Log chậm, echo, đếm lỗi khung |
-| 446–465 | Alarm và fault | 20 | Chốt lỗi, xóa đúng cách, tắt carrier khi fault |
-| 466–475 | Testbench | 10 | Kiểm tra bằng testbench trước khi nạp board |
-| 476–500 | Sửa và giữ hành vi cũ | 25 | Sửa một chỗ, giữ hành vi cũ, biên dịch lại, nạp lại |
-| 501–540 | Panel kết hợp | 40 | Cùng lúc 7 thanh, LED, nút, switch và ngõ ra |
+| 1–20 | Project flow | 20 | Open the project, constrain the clock, read the report, program the right image |
+| 21–45 | Verilog habits | 25 | Small modules, named constants, no latches, comments that match the code |
+| 46–65 | Reset and clock | 20 | Reset to a safe value, nested ticks, the correct clock source |
+| 66–80 | Synchronization and CDC | 15 | Bring buttons and switches into one clock, and do not tear a bus |
+| 81–105 | State machines | 25 | Add a state without breaking the old transitions |
+| 106–145 | S-plane timing | 40 | Change the frame, subframe, and symbol without a one-tick offset |
+| 146–185 | M-plane registers | 40 | Change the map, default, and range, and keep edit separate from active |
+| 186–220 | C-plane section | 35 | Change the command parser, reject a bad command, and do not break the symbol schedule |
+| 221–255 | U-plane payload | 35 | Change the header and the IQ and still keep the frame id and sequence |
+| 256–285 | IQ path | 30 | If you add a pipeline stage, delay valid with the sample |
+| 286–310 | Gain and arithmetic | 25 | If you change the gain width, change the saturation at the same time |
+| 311–335 | NCO and simple DSP | 25 | NCO, a simple filter, and how many bits grow |
+| 336–360 | Memory | 25 | FIFO, RAM, ping-pong, and the full and empty flags |
+| 361–380 | LCD for debug | 20 | Bring status out to the LCD so you can watch it while editing |
+| 381–400 | LEDs, buttons, and 7-segment | 20 | Assign lamps and buttons from the silkscreen, not from another board |
+| 401–420 | ADC path | 20 | Watch the input level, hold the code, and record an over-threshold event |
+| 421–445 | UART for debug | 25 | A slow log, echo, and a count of frame errors |
+| 446–465 | Alarms and faults | 20 | Latch a fault, clear it the right way, and turn the carrier off on a fault |
+| 466–475 | Testbench | 10 | Check with a testbench before programming the board |
+| 476–500 | Edit and keep old behavior | 25 | Change one place, keep the old behavior, compile again, program again |
+| 501–540 | Combined panel | 40 | 7-segment display, LEDs, buttons, switches, and outputs at the same time |
 
-## Quy trình project (1–20)
+## Project flow (1–20)
 
-| # | Bài | Thói quen mang sang O-RU |
+| # | Lab | Habit to carry to the O-RU |
 | --- | --- | --- |
 | 1 | Create a one-file project and compile it | Open, compile, find the SOF |
 | 2 | Add a 20 ns SDC and remove the false 1 ns failure | Timing constraint |
@@ -59,9 +59,9 @@ Chân đã gán: clock 28, LCD D0–D7 = 223–216, RS 215, RW 214, E 213. Chân
 | 19 | Change only the LCD string and recompile | Small edit |
 | 20 | Write the five steps: open qpf, compile, JTAG, check LCD | Repeatable flow |
 
-## Thói quen Verilog (21–45)
+## Verilog habits (21–45)
 
-| # | Bài | Thói quen mang sang O-RU |
+| # | Lab | Habit to carry to the O-RU |
 | --- | --- | --- |
 | 21 | Replace the clock frequency magic number with a localparam | Named constant |
 | 22 | Use one ANSI-style port list | Readable ports |
@@ -89,9 +89,9 @@ Chân đã gán: clock 28, LCD D0–D7 = 223–216, RS 215, RW 214, E 213. Chân
 | 44 | Record the last edit in the file header | Change note |
 | 45 | Keep one clock and one reset port on every module | Common ports |
 
-## Reset và clock (46–65)
+## Reset and clock (46–65)
 
-| # | Bài | Thói quen mang sang O-RU |
+| # | Lab | Habit to carry to the O-RU |
 | --- | --- | --- |
 | 46 | Hold a 50 ms synchronous boot reset | Power-on reset |
 | 47 | Keep the LCD idle during reset | Safe outputs |
@@ -114,9 +114,9 @@ Chân đã gán: clock 28, LCD D0–D7 = 223–216, RS 215, RW 214, E 213. Chân
 | 64 | Divide 50 MHz to 1 Hz with an integer divider | Exact divide |
 | 65 | Document the ADC clock pin as an FPGA output | Pin role |
 
-## Đồng bộ và CDC (66–80)
+## Synchronization and CDC (66–80)
 
-| # | Bài | Thói quen mang sang O-RU |
+| # | Lab | Habit to carry to the O-RU |
 | --- | --- | --- |
 | 66 | Synchronize one switch with two flip-flops | 2FF sync |
 | 67 | Compare a 3FF synchronizer with the 2FF version | Extra latency |
@@ -134,9 +134,9 @@ Chân đã gán: clock 28, LCD D0–D7 = 223–216, RS 215, RW 214, E 213. Chân
 | 79 | Show a torn multi-bit value when the handshake is skipped | CDC bug |
 | 80 | Snapshot the synchronized switches once per second | Stable sample |
 
-## Máy trạng thái (81–105)
+## State machines (81–105)
 
-| # | Bài | Thói quen mang sang O-RU |
+| # | Lab | Habit to carry to the O-RU |
 | --- | --- | --- |
 | 81 | Implement IDLE, CONFIG, RUN, and FAULT | RU state |
 | 82 | Show the state name on the LCD | State observe |
@@ -166,7 +166,7 @@ Chân đã gán: clock 28, LCD D0–D7 = 223–216, RS 215, RW 214, E 213. Chân
 
 ## S-plane timing (106–145)
 
-| # | Bài | Thói quen mang sang O-RU |
+| # | Lab | Habit to carry to the O-RU |
 | --- | --- | --- |
 | 106 | Count 10 ms frames | Radio frame |
 | 107 | Wrap the frame number at 1024 | System frame |
@@ -211,7 +211,7 @@ Chân đã gán: clock 28, LCD D0–D7 = 223–216, RS 215, RW 214, E 213. Chân
 
 ## M-plane registers (146–185)
 
-| # | Bài | Thói quen mang sang O-RU |
+| # | Lab | Habit to carry to the O-RU |
 | --- | --- | --- |
 | 146 | Carrier on and off bit | Carrier admin |
 | 147 | Gain index 0 to 15 | Gain config |
@@ -256,7 +256,7 @@ Chân đã gán: clock 28, LCD D0–D7 = 223–216, RS 215, RW 214, E 213. Chân
 
 ## C-plane section (186–220)
 
-| # | Bài | Thói quen mang sang O-RU |
+| # | Lab | Habit to carry to the O-RU |
 | --- | --- | --- |
 | 186 | Latch a section id from the switches | Section id |
 | 187 | Latch a start symbol 0 to 13 | startSymbolId |
@@ -296,7 +296,7 @@ Chân đã gán: clock 28, LCD D0–D7 = 223–216, RS 215, RW 214, E 213. Chân
 
 ## U-plane payload (221–255)
 
-| # | Bài | Thói quen mang sang O-RU |
+| # | Lab | Habit to carry to the O-RU |
 | --- | --- | --- |
 | 221 | Send the constant sample I=1, Q=0 | Constant IQ |
 | 222 | Ramp I each sample | Test ramp |
@@ -334,9 +334,9 @@ Chân đã gán: clock 28, LCD D0–D7 = 223–216, RS 215, RW 214, E 213. Chân
 | 254 | Flash the LCD when a packet is sent | TX event |
 | 255 | Hold the last header for inspection | Capture |
 
-## Đường IQ (256–285)
+## IQ path (256–285)
 
-| # | Bài | Thói quen mang sang O-RU |
+| # | Lab | Habit to carry to the O-RU |
 | --- | --- | --- |
 | 256 | Split one word into I and Q | Deinterleave |
 | 257 | Clip I to signed 8 bits | I limit |
@@ -369,9 +369,9 @@ Chân đã gán: clock 28, LCD D0–D7 = 223–216, RS 215, RW 214, E 213. Chân
 | 284 | Count cycles spent stalled | Stall count |
 | 285 | Show I and Q on two LCD fields | IQ observe |
 
-## Gain và số học (286–310)
+## Gain and arithmetic (286–310)
 
-| # | Bài | Thói quen mang sang O-RU |
+| # | Lab | Habit to carry to the O-RU |
 | --- | --- | --- |
 | 286 | Shift a sample left by 0 to 3 | Coarse gain up |
 | 287 | Shift a sample right by 0 to 3 | Coarse gain down |
@@ -399,9 +399,9 @@ Chân đã gán: clock 28, LCD D0–D7 = 223–216, RS 215, RW 214, E 213. Chân
 | 309 | Keep a sticky saturation flag | Sticky sat |
 | 310 | Show the gain index and the saturation count | Gain status |
 
-## NCO và DSP đơn giản (311–335)
+## NCO and simple DSP (311–335)
 
-| # | Bài | Thói quen mang sang O-RU |
+| # | Lab | Habit to carry to the O-RU |
 | --- | --- | --- |
 | 311 | Build a phase accumulator | NCO phase |
 | 312 | Set the frequency word from switches | Frequency word |
@@ -429,9 +429,9 @@ Chân đã gán: clock 28, LCD D0–D7 = 223–216, RS 215, RW 214, E 213. Chân
 | 334 | Bypass the filter with a bit | Bypass |
 | 335 | Write down the accumulator bit growth | Bit growth |
 
-## Bộ nhớ (336–360)
+## Memory (336–360)
 
-| # | Bài | Thói quen mang sang O-RU |
+| # | Lab | Habit to carry to the O-RU |
 | --- | --- | --- |
 | 336 | Store the LCD string in a ROM | ROM |
 | 337 | Change one character and recompile | ROM edit |
@@ -459,9 +459,9 @@ Chân đã gán: clock 28, LCD D0–D7 = 223–216, RS 215, RW 214, E 213. Chân
 | 359 | Let the reader see only the stable buffer | Buffer ownership |
 | 360 | Swap pointers only on a symbol boundary | Atomic swap |
 
-## LCD dùng để debug (361–380)
+## LCD for debug (361–380)
 
-| # | Bài | Thói quen mang sang O-RU |
+| # | Lab | Habit to carry to the O-RU |
 | --- | --- | --- |
 | 361 | Draw a hex nibble | Hex font |
 | 362 | Draw two hex bytes | Byte field |
@@ -484,9 +484,9 @@ Chân đã gán: clock 28, LCD D0–D7 = 223–216, RS 215, RW 214, E 213. Chân
 | 379 | Blank a field when it is invalid | Invalid mark |
 | 380 | Keep contrast as a pot adjustment, not a pin | Analog control |
 
-## LED, nút và 7-segment (381–400)
+## LEDs, buttons, and 7-segment (381–400)
 
-| # | Bài | Thói quen mang sang O-RU |
+| # | Lab | Habit to carry to the O-RU |
 | --- | --- | --- |
 | 381 | Light an LED from a switch | Direct I/O |
 | 382 | Encode the FSM state on LEDs | State lamps |
@@ -509,9 +509,9 @@ Chân đã gán: clock 28, LCD D0–D7 = 223–216, RS 215, RW 214, E 213. Chân
 | 399 | Comment every panel pin in the QSF | Pin list |
 | 400 | Copy new LED pins from the silkscreen before using them | No guessed pins |
 
-## Đường ADC (401–420)
+## ADC path (401–420)
 
-| # | Bài | Thói quen mang sang O-RU |
+| # | Lab | Habit to carry to the O-RU |
 | --- | --- | --- |
 | 401 | Read the ADC once per second | Slow observe |
 | 402 | Refresh the ADC value continuously | RX level |
@@ -534,9 +534,9 @@ Chân đã gán: clock 28, LCD D0–D7 = 223–216, RS 215, RW 214, E 213. Chân
 | 419 | Timestamp the last over-range | Alarm time |
 | 420 | Keep the ADC clock as an output pin | ADC clock role |
 
-## UART để debug (421–445)
+## UART for debug (421–445)
 
-| # | Bài | Thói quen mang sang O-RU |
+| # | Lab | Habit to carry to the O-RU |
 | --- | --- | --- |
 | 421 | Transmit the text ORAN | TX path |
 | 422 | Transmit the frame counter once per frame | Timing log |
@@ -564,9 +564,9 @@ Chân đã gán: clock 28, LCD D0–D7 = 223–216, RS 215, RW 214, E 213. Chân
 | 444 | Return the packet with the sequence plus one | Sequence reply |
 | 445 | Read the RS-232 TX and RX pins from the silkscreen first | UART pins |
 
-## Alarm và fault (446–465)
+## Alarms and faults (446–465)
 
-| # | Bài | Thói quen mang sang O-RU |
+| # | Lab | Habit to carry to the O-RU |
 | --- | --- | --- |
 | 446 | Latch an alarm | Latch |
 | 447 | Clear the latch with a button | Operator clear |
@@ -591,7 +591,7 @@ Chân đã gán: clock 28, LCD D0–D7 = 223–216, RS 215, RW 214, E 213. Chân
 
 ## Testbench (466–475)
 
-| # | Bài | Thói quen mang sang O-RU |
+| # | Lab | Habit to carry to the O-RU |
 | --- | --- | --- |
 | 466 | Generate the clock in a testbench | TB clock |
 | 467 | Check that the LCD bytes match the string | String check |
@@ -604,9 +604,9 @@ Chân đã gán: clock 28, LCD D0–D7 = 223–216, RS 215, RW 214, E 213. Chân
 | 474 | Add a check that fails if the string changes by mistake | Regression |
 | 475 | Compare the testbench result with the LCD before calling a lab done | Sim then board |
 
-## Sửa và giữ hành vi cũ (476–500)
+## Edit and keep old behavior (476–500)
 
-| # | Bài | Thói quen mang sang O-RU |
+| # | Lab | Habit to carry to the O-RU |
 | --- | --- | --- |
 | 476 | Change only the LCD string and do not touch pins | Isolated edit |
 | 477 | Add a state and keep the old transitions | Extend FSM |
@@ -634,11 +634,11 @@ Chân đã gán: clock 28, LCD D0–D7 = 223–216, RS 215, RW 214, E 213. Chân
 | 499 | Write the symptom, the module, and the fix in three lines | Debug note |
 | 500 | Repeat one small edit until compile, program, and check is routine | Maintenance loop |
 
-## Panel kết hợp (501–540)
+## Combined panel (501–540)
 
-Mỗi bài dùng đủ năm thứ trong một thiết kế: LED 7 thanh hiện số, LED đơn hiện bit, nút nhấn ra lệnh, switch đưa dữ liệu, ngõ ra là LCD cộng một xung trạng thái. Chưa điền số chân cho đến khi đọc silk.
+Each lab uses all five parts of one design: the 7-segment LEDs show a number, single LEDs show bits, buttons issue commands, switches supply data, and the outputs are the LCD plus a status pulse. Do not fill in pin numbers until you have read the silkscreen.
 
-| # | Bài | Thói quen mang sang O-RU |
+| # | Lab | Habit to carry to the O-RU |
 | --- | --- | --- |
 | 501 | Self-test: every LED on, 7-seg shows 8, LCD shows EP1C6, buttons ignored | Boot lamps |
 | 502 | IDLE: heartbeat LED, 7-seg 0, LCD IDLE, switches ignored until Apply | Quiet idle |
